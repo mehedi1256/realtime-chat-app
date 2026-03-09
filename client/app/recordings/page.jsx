@@ -25,25 +25,25 @@ export default function RecordingsPage() {
   if (!hasHydrated || !token) return null;
 
   return (
-    <div className="min-h-screen bg-gray-100 dark:bg-gray-900">
-      <header className="sticky top-0 z-10 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-4 py-3">
-        <div className="flex items-center gap-3">
+    <div className="min-h-screen bg-gray-100 dark:bg-gray-900 overflow-x-hidden">
+      <header className="sticky top-0 z-10 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-3 sm:px-4 py-3">
+        <div className="flex items-center gap-2 sm:gap-3">
           <Link
             href="/chat"
-            className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+            className="min-h-touch min-w-touch flex items-center justify-center p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors touch-manipulation -ml-1"
           >
             <HiOutlineArrowLeft className="w-5 h-5 text-gray-600 dark:text-gray-300" />
           </Link>
-          <h1 className="text-lg font-semibold text-gray-900 dark:text-white">
+          <h1 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-white truncate flex-1 min-w-0">
             Audio & Video Recorder
           </h1>
         </div>
-        <p className="text-sm text-gray-500 dark:text-gray-400 mt-1 ml-11">
+        <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 mt-1 ml-9 sm:ml-11">
           Recordings are saved in your browser (IndexedDB) and stay on this device.
         </p>
       </header>
 
-      <main className="p-4 max-w-2xl mx-auto space-y-6">
+      <main className="p-3 sm:p-4 max-w-2xl mx-auto space-y-4 sm:space-y-6">
         <motion.section
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}

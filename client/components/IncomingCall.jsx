@@ -35,7 +35,7 @@ export default function IncomingCall({ offer, onAccept }) {
         animate={{ opacity: 1, y: 0 }}
         exit={{ opacity: 0, y: -40 }}
         transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-        className="fixed top-4 left-1/2 -translate-x-1/2 z-[110] w-[92%] max-w-sm"
+        className="fixed top-4 left-1/2 -translate-x-1/2 z-[110] w-[calc(100%-2rem)] max-w-sm"
       >
         <div className="bg-gray-800 border border-gray-700 rounded-2xl shadow-2xl shadow-black/40 p-5">
           {/* Caller info */}
@@ -75,12 +75,12 @@ export default function IncomingCall({ offer, onAccept }) {
           </div>
 
           {/* Action buttons */}
-          <div className="flex items-center justify-center gap-8">
+          <div className="flex items-center justify-center gap-6 sm:gap-8">
             <div className="flex flex-col items-center gap-1.5">
               <motion.button
                 whileTap={{ scale: 0.9 }}
                 onClick={handleReject}
-                className="w-14 h-14 bg-red-600 hover:bg-red-700 rounded-full flex items-center justify-center shadow-lg shadow-red-600/20"
+                className="min-h-touch min-w-touch w-14 h-14 bg-red-600 hover:bg-red-700 rounded-full flex items-center justify-center shadow-lg shadow-red-600/20 touch-manipulation"
               >
                 <HiOutlinePhone className="w-6 h-6 text-white rotate-[135deg]" />
               </motion.button>
@@ -93,7 +93,7 @@ export default function IncomingCall({ offer, onAccept }) {
                 animate={{ scale: [1, 1.08, 1] }}
                 transition={{ duration: 1.5, repeat: Infinity, ease: 'easeInOut' }}
                 onClick={handleAccept}
-                className="w-14 h-14 bg-green-600 hover:bg-green-700 rounded-full flex items-center justify-center shadow-lg shadow-green-600/20"
+                className="min-h-touch min-w-touch w-14 h-14 bg-green-600 hover:bg-green-700 rounded-full flex items-center justify-center shadow-lg shadow-green-600/20 touch-manipulation"
               >
                 {callState.type === 'video' ? (
                   <HiOutlineVideoCamera className="w-6 h-6 text-white" />

@@ -35,9 +35,9 @@ export default function RootLayout({ children }) {
       <head>
         <title>ChatApp - Real-time Messaging</title>
         <meta name="description" content="Real-time encrypted messaging application" />
-        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=5, viewport-fit=cover" />
       </head>
-      <body className="min-h-screen">
+      <body className="min-h-screen overflow-x-hidden">
         <Toaster
           position="top-right"
           toastOptions={{

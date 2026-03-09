@@ -22,9 +22,9 @@ export default function IncomingGroupCall({ onAccept, onReject }) {
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-4 px-6 py-4 bg-white dark:bg-gray-800 rounded-2xl shadow-xl border border-gray-200 dark:border-gray-700"
+        className="fixed bottom-4 sm:bottom-6 left-1/2 -translate-x-1/2 z-50 flex flex-col sm:flex-row items-center gap-3 sm:gap-4 px-4 sm:px-6 py-4 bg-white dark:bg-gray-800 rounded-2xl shadow-xl border border-gray-200 dark:border-gray-700 w-[calc(100%-2rem)] max-w-sm mx-auto"
       >
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 w-full sm:w-auto justify-center sm:justify-start">
           {from?.profilePicture ? (
             <img
               src={`${API_URL}${from.profilePicture}`}
@@ -45,16 +45,16 @@ export default function IncomingGroupCall({ onAccept, onReject }) {
             </p>
           </div>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-3 justify-center">
           <button
             onClick={() => onReject?.()}
-            className="p-3 rounded-full bg-red-500 text-white hover:bg-red-600"
+            className="min-h-touch min-w-touch flex items-center justify-center p-3 rounded-full bg-red-500 text-white hover:bg-red-600 touch-manipulation"
           >
             <HiOutlinePhoneMissedCall className="w-6 h-6" />
           </button>
           <button
             onClick={() => onAccept?.()}
-            className="p-3 rounded-full bg-green-500 text-white hover:bg-green-600"
+            className="min-h-touch min-w-touch flex items-center justify-center p-3 rounded-full bg-green-500 text-white hover:bg-green-600 touch-manipulation"
           >
             <HiOutlinePhone className="w-6 h-6" />
           </button>

@@ -12,7 +12,7 @@ export default function DarkModeToggle() {
     <motion.button
       whileTap={{ scale: 0.9 }}
       onClick={toggleDarkMode}
-      className="p-2 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+      className="min-h-touch min-w-touch flex items-center justify-center p-2 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors touch-manipulation"
       title={darkMode ? 'Switch to light mode' : 'Switch to dark mode'}
     >
       {darkMode ? (

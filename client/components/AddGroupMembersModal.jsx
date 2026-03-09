@@ -76,7 +76,7 @@ export default function AddGroupMembersModal({ group, onClose, onAdded }) {
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
+        className="fixed inset-0 bg-black/50 flex items-end sm:items-center justify-center z-50 p-0 sm:p-4"
         onClick={onClose}
       >
         <motion.div
@@ -84,17 +84,17 @@ export default function AddGroupMembersModal({ group, onClose, onAdded }) {
           animate={{ scale: 1, opacity: 1 }}
           exit={{ scale: 0.95, opacity: 0 }}
           onClick={(e) => e.stopPropagation()}
-          className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl w-full max-w-md max-h-[90vh] flex flex-col"
+          className="bg-white dark:bg-gray-800 rounded-t-2xl sm:rounded-2xl shadow-xl w-full max-w-md max-h-[90vh] flex flex-col"
         >
-          <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
-            <h3 className="font-semibold text-gray-900 dark:text-white">Add members</h3>
-            <button type="button" onClick={onClose} className="p-1.5 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg">
+          <div className="flex items-center justify-between p-3 sm:p-4 border-b border-gray-200 dark:border-gray-700">
+            <h3 className="font-semibold text-gray-900 dark:text-white text-base sm:text-lg">Add members</h3>
+            <button type="button" onClick={onClose} className="min-h-touch min-w-touch flex items-center justify-center p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg touch-manipulation">
               <HiOutlineX className="w-5 h-5" />
             </button>
           </div>
 
-          <form onSubmit={handleSubmit} className="flex flex-col flex-1 min-h-0">
-            <div className="p-4">
+          <form onSubmit={handleSubmit} className="flex flex-col flex-1 min-h-0 overflow-hidden">
+            <div className="p-3 sm:p-4 overflow-y-auto">
               <input
                 type="text"
                 value={search}
@@ -109,7 +109,7 @@ export default function AddGroupMembersModal({ group, onClose, onAdded }) {
                   filtered.map((u) => (
                     <label
                       key={u._id}
-                      className="flex items-center gap-3 p-3 hover:bg-gray-50 dark:hover:bg-gray-700/50 cursor-pointer"
+                      className="flex items-center gap-3 p-3 min-h-touch hover:bg-gray-50 dark:hover:bg-gray-700/50 cursor-pointer touch-manipulation"
                     >
                       <input
                         type="checkbox"
@@ -130,18 +130,18 @@ export default function AddGroupMembersModal({ group, onClose, onAdded }) {
               )}
             </div>
 
-            <div className="p-4 border-t border-gray-200 dark:border-gray-700 flex gap-3">
+            <div className="p-3 sm:p-4 border-t border-gray-200 dark:border-gray-700 flex gap-3 flex-shrink-0">
               <button
                 type="button"
                 onClick={onClose}
-                className="flex-1 py-2.5 border border-gray-300 dark:border-gray-600 rounded-xl font-medium text-gray-700 dark:text-gray-300"
+                className="flex-1 py-2.5 min-h-touch border border-gray-300 dark:border-gray-600 rounded-xl font-medium text-gray-700 dark:text-gray-300 touch-manipulation"
               >
                 Cancel
               </button>
               <button
                 type="submit"
                 disabled={loading || selectedIds.size === 0}
-                className="flex-1 py-2.5 bg-primary-500 hover:bg-primary-600 disabled:opacity-50 text-white font-medium rounded-xl"
+                className="flex-1 py-2.5 min-h-touch bg-primary-500 hover:bg-primary-600 disabled:opacity-50 text-white font-medium rounded-xl touch-manipulation"
               >
                 {loading ? 'Adding...' : 'Add'}
               </button>

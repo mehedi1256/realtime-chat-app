@@ -117,44 +117,45 @@ export default function Sidebar({ onSelectUser, onSelectGroup, isMobileOpen }) {
         isMobileOpen ? 'block' : 'hidden md:flex'
       }`}
     >
-      <div className="p-4 border-b border-gray-200 dark:border-gray-700">
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-3">
+      <div className="p-3 sm:p-4 border-b border-gray-200 dark:border-gray-700 flex-shrink-0">
+        <div className="flex items-center justify-between mb-3 sm:mb-4 gap-2">
+          <div className="flex items-center gap-2 sm:gap-3 min-w-0">
             <Avatar user={user} size="md" />
-            <div>
-              <h2 className="font-semibold text-gray-900 dark:text-white text-sm">
+            <div className="min-w-0">
+              <h2 className="font-semibold text-gray-900 dark:text-white text-sm truncate">
                 {user?.name}
               </h2>
               <p className="text-xs text-green-500">Online</p>
             </div>
           </div>
-          <div className="flex items-center gap-1">
+          <div className="flex items-center gap-0.5 sm:gap-1 flex-shrink-0">
             <Link
               href="/recordings"
-              className="p-2 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors text-gray-500"
+              className="min-h-touch min-w-touch flex items-center justify-center p-2 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors text-gray-500 touch-manipulation"
               title="Recordings"
             >
-              <HiOutlineVideoCamera className="w-5 h-5" />
+              <HiOutlineVideoCamera className="w-5 h-5 sm:w-5 sm:h-5" />
             </Link>
             <DarkModeToggle />
             <button
+              type="button"
               onClick={handleLogout}
-              className="p-2 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors text-gray-500"
+              className="min-h-touch min-w-touch flex items-center justify-center p-2 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors text-gray-500 touch-manipulation"
               title="Logout"
             >
-              <HiOutlineLogout className="w-5 h-5" />
+              <HiOutlineLogout className="w-5 h-5 sm:w-5 sm:h-5" />
             </button>
           </div>
         </div>
 
         <div className="relative">
-          <HiOutlineSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
+          <HiOutlineSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4 pointer-events-none" />
           <input
             type="text"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search chats and groups"
-            className="w-full pl-9 pr-4 py-2 bg-white dark:bg-chat-input-dark rounded-lg text-sm text-gray-900 dark:text-white placeholder-gray-500 outline-none border border-gray-200 dark:border-gray-600 focus:border-primary-500 transition-colors"
+            className="w-full pl-9 pr-4 py-2.5 sm:py-2 bg-white dark:bg-chat-input-dark rounded-lg text-sm text-gray-900 dark:text-white placeholder-gray-500 outline-none border border-gray-200 dark:border-gray-600 focus:border-primary-500 transition-colors min-h-touch"
           />
         </div>
 
@@ -162,7 +163,7 @@ export default function Sidebar({ onSelectUser, onSelectGroup, isMobileOpen }) {
           <button
             type="button"
             onClick={() => setActiveTab('chats')}
-            className={`flex-1 py-1.5 rounded-md text-sm font-medium transition-colors ${
+            className={`flex-1 py-2 sm:py-1.5 rounded-md text-sm font-medium transition-colors min-h-touch touch-manipulation ${
               activeTab === 'chats'
                 ? 'bg-white dark:bg-gray-700 text-primary-600 dark:text-primary-400 shadow'
                 : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
@@ -173,7 +174,7 @@ export default function Sidebar({ onSelectUser, onSelectGroup, isMobileOpen }) {
           <button
             type="button"
             onClick={() => setActiveTab('groups')}
-            className={`flex-1 py-1.5 rounded-md text-sm font-medium transition-colors ${
+            className={`flex-1 py-2 sm:py-1.5 rounded-md text-sm font-medium transition-colors min-h-touch touch-manipulation ${
               activeTab === 'groups'
                 ? 'bg-white dark:bg-gray-700 text-primary-600 dark:text-primary-400 shadow'
                 : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
@@ -186,14 +187,14 @@ export default function Sidebar({ onSelectUser, onSelectGroup, isMobileOpen }) {
           <button
             type="button"
             onClick={() => setShowCreateGroup(true)}
-            className="mt-2 w-full flex items-center justify-center gap-2 py-2 rounded-lg border border-dashed border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700/50 text-sm"
+            className="mt-2 w-full flex items-center justify-center gap-2 py-3 sm:py-2 rounded-lg border border-dashed border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700/50 text-sm min-h-touch touch-manipulation"
           >
             <HiOutlinePlus className="w-4 h-4" /> New group
           </button>
         )}
       </div>
 
-      <div className="flex-1 overflow-y-auto scrollbar-thin">
+      <div className="flex-1 overflow-y-auto overflow-x-hidden scrollbar-thin min-h-0">
         {activeTab === 'chats' && (
         <AnimatePresence>
           {filteredUsers.length === 0 ? (
@@ -208,7 +209,7 @@ export default function Sidebar({ onSelectUser, onSelectGroup, isMobileOpen }) {
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
                 onClick={() => onSelectUser(u)}
-                className={`flex items-center gap-3 px-4 py-3 cursor-pointer transition-colors hover:bg-gray-100 dark:hover:bg-gray-700/50 ${
+                className={`flex items-center gap-3 px-3 sm:px-4 py-3 min-h-touch cursor-pointer transition-colors hover:bg-gray-100 dark:hover:bg-gray-700/50 active:bg-gray-200 dark:active:bg-gray-600 touch-manipulation ${
                   selectedUser?._id === u._id
                     ? 'bg-gray-200 dark:bg-gray-700'
                     : ''
@@ -260,7 +261,7 @@ export default function Sidebar({ onSelectUser, onSelectGroup, isMobileOpen }) {
                   animate={{ opacity: 1 }}
                   exit={{ opacity: 0 }}
                   onClick={() => onSelectGroup(g)}
-                  className={`flex items-center gap-3 px-4 py-3 cursor-pointer transition-colors hover:bg-gray-100 dark:hover:bg-gray-700/50 ${
+                  className={`flex items-center gap-3 px-3 sm:px-4 py-3 min-h-touch cursor-pointer transition-colors hover:bg-gray-100 dark:hover:bg-gray-700/50 active:bg-gray-200 dark:active:bg-gray-600 touch-manipulation ${
                     selectedGroup?._id === g._id ? 'bg-gray-200 dark:bg-gray-700' : ''
                   }`}
                 >
@@ -268,7 +269,7 @@ export default function Sidebar({ onSelectUser, onSelectGroup, isMobileOpen }) {
                     <img
                       src={`${API_URL}${g.groupAvatar}`}
                       alt=""
-                      className="w-12 h-12 rounded-full object-cover flex-shrink-0"
+                      className="w-10 h-10 sm:w-12 sm:h-12 rounded-full object-cover flex-shrink-0 max-w-full"
                     />
                   ) : (
                     <div className="w-12 h-12 rounded-full bg-primary-100 dark:bg-primary-900/40 flex items-center justify-center flex-shrink-0">

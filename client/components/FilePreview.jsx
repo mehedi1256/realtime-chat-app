@@ -54,11 +54,11 @@ export default function FilePreview({ fileUrl, fileName, fileType, localBlobUrl 
 
   if (isImage) {
     return (
-      <div className="mt-1 rounded-lg overflow-hidden max-w-xs">
+      <div className="mt-1 rounded-lg overflow-hidden max-w-full">
         <img
           src={fullUrl}
           alt={fileName || 'Image'}
-          className="w-full h-auto max-h-64 object-cover rounded-lg cursor-pointer hover:opacity-90 transition-opacity"
+          className="w-full h-auto max-h-48 sm:max-h-64 object-cover rounded-lg cursor-pointer hover:opacity-90 transition-opacity"
           onClick={() => (isLocal ? downloadFromBlobUrl(localBlobUrl, fileName) : window.open(fullUrl, '_blank'))}
         />
         {fileName && (
@@ -70,11 +70,11 @@ export default function FilePreview({ fileUrl, fileName, fileType, localBlobUrl 
 
   if (isVideo) {
     return (
-      <div className="mt-1 rounded-lg overflow-hidden max-w-xs">
+      <div className="mt-1 rounded-lg overflow-hidden max-w-full">
         <video
           src={fullUrl}
           controls
-          className="w-full max-h-64 rounded-lg"
+          className="w-full max-h-48 sm:max-h-64 rounded-lg"
           preload="metadata"
         />
         {fileName && (
@@ -89,7 +89,7 @@ export default function FilePreview({ fileUrl, fileName, fileType, localBlobUrl 
       type="button"
       onClick={handleDownload}
       disabled={downloading}
-      className="flex items-center gap-3 mt-1 p-3 w-full text-left bg-black/5 dark:bg-white/5 rounded-lg hover:bg-black/10 dark:hover:bg-white/10 transition-colors max-w-xs disabled:opacity-60 cursor-pointer"
+      className="flex items-center gap-3 mt-1 p-3 w-full text-left bg-black/5 dark:bg-white/5 rounded-lg hover:bg-black/10 dark:hover:bg-white/10 transition-colors max-w-full disabled:opacity-60 cursor-pointer min-h-touch touch-manipulation"
     >
       <div className="w-10 h-10 bg-primary-100 dark:bg-primary-900/30 rounded-lg flex items-center justify-center flex-shrink-0">
         <HiOutlineDocument className="w-5 h-5 text-primary-600 dark:text-primary-400" />

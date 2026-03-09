@@ -6,7 +6,34 @@ module.exports = {
   ],
   darkMode: 'class',
   theme: {
+    screens: {
+      xs: '320px',
+      sm: '481px',
+      md: '768px',
+      lg: '1025px',
+      xl: '1441px',
+      '2xl': '1536px',
+    },
     extend: {
+      fontSize: {
+        'fluid-xs': ['0.75rem', { lineHeight: '1rem' }],
+        'fluid-sm': ['0.875rem', { lineHeight: '1.25rem' }],
+        'fluid-base': ['1rem', { lineHeight: '1.5rem' }],
+        'fluid-lg': ['1.125rem', { lineHeight: '1.75rem' }],
+        'fluid-xl': ['1.25rem', { lineHeight: '1.75rem' }],
+        'fluid-2xl': ['1.5rem', { lineHeight: '2rem' }],
+      },
+      spacing: {
+        'touch': '44px',
+        'safe-top': 'env(safe-area-inset-top)',
+        'safe-bottom': 'env(safe-area-inset-bottom)',
+      },
+      minHeight: {
+        'touch': '44px',
+      },
+      minWidth: {
+        'touch': '44px',
+      },
       colors: {
         primary: {
           50: '#eff6ff',

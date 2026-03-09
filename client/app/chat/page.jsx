@@ -356,13 +356,13 @@ export default function ChatPage() {
   }
 
   return (
-    <div className="h-screen flex bg-white dark:bg-gray-900">
+    <div className="h-screen flex flex-col md:flex-row bg-white dark:bg-gray-900 overflow-hidden">
       <div
-        className={`w-full md:w-[360px] lg:w-[400px] flex-shrink-0 ${
+        className={`w-full md:w-[320px] lg:w-[360px] xl:w-[400px] flex-shrink-0 min-w-0 ${
           mobileShowChat ? 'hidden md:flex' : 'flex'
         }`}
       >
-        <div className="w-full">
+        <div className="w-full h-full min-w-0">
           <Sidebar
             onSelectUser={handleSelectUser}
             onSelectGroup={handleSelectGroup}
@@ -371,7 +371,7 @@ export default function ChatPage() {
         </div>
       </div>
 
-      <div className={`flex-1 ${mobileShowChat ? 'flex' : 'hidden md:flex'}`}>
+      <div className={`flex-1 min-w-0 min-h-0 ${mobileShowChat ? 'flex' : 'hidden md:flex'}`}>
         {selectedGroup ? (
           <GroupChatWindow
             key={selectedGroup._id}

@@ -183,12 +183,13 @@ export default function GroupChatWindow({ onBack, onStartGroupCall }) {
   }
 
   return (
-    <div className="flex-1 flex flex-col h-full">
-      <div className="flex items-center gap-3 px-4 py-3 bg-chat-sidebar dark:bg-chat-header-dark border-b border-gray-200 dark:border-gray-700">
+      <div className="flex-1 flex flex-col h-full min-h-0">
+      <div className="flex items-center gap-2 sm:gap-3 px-3 sm:px-4 py-3 bg-chat-sidebar dark:bg-chat-header-dark border-b border-gray-200 dark:border-gray-700 flex-shrink-0">
         <button
           type="button"
           onClick={onBack}
-          className="md:hidden p-1 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg"
+          className="md:hidden min-h-touch min-w-touch flex items-center justify-center p-2 -ml-1 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg touch-manipulation"
+          aria-label="Back to chats"
         >
           <HiOutlineArrowLeft className="w-5 h-5" />
         </button>
@@ -196,10 +197,10 @@ export default function GroupChatWindow({ onBack, onStartGroupCall }) {
           <img
             src={`${API_URL}${selectedGroup.groupAvatar}`}
             alt=""
-            className="w-10 h-10 rounded-full object-cover"
+            className="w-9 h-9 sm:w-10 sm:h-10 rounded-full object-cover flex-shrink-0"
           />
         ) : (
-          <div className="w-10 h-10 rounded-full bg-primary-100 dark:bg-primary-900/40 flex items-center justify-center">
+          <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-primary-100 dark:bg-primary-900/40 flex items-center justify-center flex-shrink-0">
             <HiOutlineUserGroup className="w-5 h-5 text-primary-500" />
           </div>
         )}
@@ -207,15 +208,15 @@ export default function GroupChatWindow({ onBack, onStartGroupCall }) {
           <h3 className="font-semibold text-gray-900 dark:text-white text-sm truncate">
             {selectedGroup.groupName}
           </h3>
-          <p className="text-xs text-gray-500 dark:text-gray-400">
+          <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
             {selectedGroup.groupMembers?.length ?? 0} members
           </p>
         </div>
-        <div className="flex items-center gap-1">
+        <div className="flex items-center gap-0.5 sm:gap-1 flex-shrink-0">
           <button
             type="button"
             onClick={() => onStartGroupCall?.('audio')}
-            className="p-2 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg transition-colors text-gray-600 dark:text-gray-300"
+            className="min-h-touch min-w-touch flex items-center justify-center p-2 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg transition-colors text-gray-600 dark:text-gray-300 touch-manipulation"
             title="Voice call"
           >
             <HiOutlinePhone className="w-5 h-5" />
@@ -223,7 +224,7 @@ export default function GroupChatWindow({ onBack, onStartGroupCall }) {
           <button
             type="button"
             onClick={() => onStartGroupCall?.('video')}
-            className="p-2 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg transition-colors text-gray-600 dark:text-gray-300"
+            className="min-h-touch min-w-touch flex items-center justify-center p-2 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg transition-colors text-gray-600 dark:text-gray-300 touch-manipulation"
             title="Video call"
           >
             <HiOutlineVideoCamera className="w-5 h-5" />
@@ -232,7 +233,7 @@ export default function GroupChatWindow({ onBack, onStartGroupCall }) {
             <button
               type="button"
               onClick={() => setShowMembers(!showMembers)}
-              className="p-2 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg"
+              className="min-h-touch min-w-touch flex items-center justify-center p-2 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg touch-manipulation"
             >
               <HiOutlineCog className="w-5 h-5" />
             </button>
@@ -308,7 +309,7 @@ export default function GroupChatWindow({ onBack, onStartGroupCall }) {
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto scrollbar-thin chat-pattern py-4">
+      <div className="flex-1 overflow-y-auto overflow-x-hidden scrollbar-thin chat-pattern py-3 sm:py-4 px-2 sm:px-4 min-h-0">
         <AnimatePresence>
           {groupMessages.map((msg) => (
             <GroupMessageBubble key={msg._id} message={msg} groupId={groupId} />
@@ -325,7 +326,7 @@ export default function GroupChatWindow({ onBack, onStartGroupCall }) {
       {canSendMessages ? (
         <form
           onSubmit={handleSend}
-          className="flex items-center gap-2 px-4 py-3 bg-chat-sidebar dark:bg-chat-header-dark border-t border-gray-200 dark:border-gray-700"
+          className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2.5 sm:py-3 bg-chat-sidebar dark:bg-chat-header-dark border-t border-gray-200 dark:border-gray-700 flex-shrink-0"
         >
           <EmojiPicker
             onSelect={(emoji) => setText((prev) => prev + emoji)}
@@ -334,13 +335,13 @@ export default function GroupChatWindow({ onBack, onStartGroupCall }) {
             <button
               type="button"
               onClick={() => setShowFileUpload(true)}
-              className="p-2 text-gray-500 hover:text-gray-700 dark:hover:text-gray-200 transition-colors"
+              className="min-h-touch min-w-touch flex items-center justify-center p-2 text-gray-500 hover:text-gray-700 dark:hover:text-gray-200 transition-colors touch-manipulation"
             >
-              <HiOutlinePaperClip className="w-6 h-6" />
+              <HiOutlinePaperClip className="w-5 h-5 sm:w-6 sm:h-6" />
             </button>
           ) : (
-            <div className="p-2 text-gray-400 cursor-not-allowed" title="Only admin can send files">
-              <HiOutlinePaperClip className="w-6 h-6" />
+            <div className="min-h-touch min-w-touch flex items-center justify-center p-2 text-gray-400 cursor-not-allowed" title="Only admin can send files">
+              <HiOutlinePaperClip className="w-5 h-5 sm:w-6 sm:h-6" />
             </div>
           )}
           <input
@@ -358,19 +359,19 @@ export default function GroupChatWindow({ onBack, onStartGroupCall }) {
               }
             }}
             placeholder="Type a message..."
-            className="flex-1 px-4 py-2.5 bg-white dark:bg-chat-input-dark rounded-xl text-sm text-gray-900 dark:text-white placeholder-gray-500 outline-none border border-gray-200 dark:border-gray-600 focus:border-primary-500 transition-colors"
+            className="flex-1 min-w-0 px-3 sm:px-4 py-2.5 bg-white dark:bg-chat-input-dark rounded-xl text-sm text-gray-900 dark:text-white placeholder-gray-500 outline-none border border-gray-200 dark:border-gray-600 focus:border-primary-500 transition-colors min-h-touch"
           />
           <motion.button
             whileTap={{ scale: 0.9 }}
             type="submit"
             disabled={!text.trim()}
-            className="p-2.5 bg-primary-500 hover:bg-primary-600 text-white rounded-xl disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+            className="min-h-touch min-w-touch flex items-center justify-center p-2.5 bg-primary-500 hover:bg-primary-600 text-white rounded-xl disabled:opacity-40 disabled:cursor-not-allowed transition-colors touch-manipulation"
           >
             <HiOutlinePaperAirplane className="w-5 h-5 rotate-90" />
           </motion.button>
         </form>
       ) : (
-        <div className="px-4 py-3 bg-chat-sidebar dark:bg-chat-header-dark border-t border-gray-200 dark:border-gray-700 text-center text-sm text-gray-500 dark:text-gray-400">
+        <div className="px-3 sm:px-4 py-2.5 sm:py-3 bg-chat-sidebar dark:bg-chat-header-dark border-t border-gray-200 dark:border-gray-700 text-center text-sm text-gray-500 dark:text-gray-400 flex-shrink-0">
           Only admin can send messages in this group
         </div>
       )}

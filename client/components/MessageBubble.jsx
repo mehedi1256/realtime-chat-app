@@ -61,7 +61,7 @@ export default function MessageBubble({ message, onEdit, onDelete, onReact, onFo
 
   if (isDeleted) {
     return (
-      <div className={`flex ${isSender ? 'justify-end' : 'justify-start'} px-4 py-0.5`}>
+      <div className={`flex ${isSender ? 'justify-end' : 'justify-start'} px-2 sm:px-4 py-0.5`}>
         <div className="px-4 py-2 rounded-xl bg-gray-100 dark:bg-gray-800 italic text-gray-400 text-sm">
           This message was deleted
         </div>
@@ -73,9 +73,9 @@ export default function MessageBubble({ message, onEdit, onDelete, onReact, onFo
     <motion.div
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
-      className={`flex ${isSender ? 'justify-end' : 'justify-start'} px-4 py-0.5 group`}
+      className={`flex ${isSender ? 'justify-end' : 'justify-start'} px-2 sm:px-4 py-0.5 group`}
     >
-      <div className="relative max-w-[75%] md:max-w-[65%]">
+      <div className="relative max-w-[85%] sm:max-w-[75%] md:max-w-[65%] min-w-0">
         <div
           className={`relative px-3 py-2 rounded-2xl shadow-sm ${
             isSender

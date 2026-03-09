@@ -76,25 +76,25 @@ export default function RegisterPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary-500 via-primary-600 to-primary-800 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 p-4">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary-500 via-primary-600 to-primary-800 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 p-3 sm:p-4 overflow-y-auto">
       <motion.div
         initial={{ opacity: 0, y: 30 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5, ease: 'easeOut' }}
-        className="w-full max-w-md"
+        className="w-full max-w-md my-4"
       >
-        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl p-8">
+        <div className="bg-white dark:bg-gray-800 rounded-xl sm:rounded-2xl shadow-2xl p-5 sm:p-6 md:p-8">
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.2 }}
-            className="text-center mb-6"
+            className="text-center mb-4 sm:mb-6"
           >
-            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Create Account</h1>
-            <p className="text-gray-500 dark:text-gray-400 mt-1">Join us and start chatting</p>
+            <h1 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">Create Account</h1>
+            <p className="text-sm sm:text-base text-gray-500 dark:text-gray-400 mt-1">Join us and start chatting</p>
           </motion.div>
 
-          <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+          <form onSubmit={handleSubmit(onSubmit)} className="space-y-3 sm:space-y-4">
             <div className="flex justify-center mb-2">
               <div
                 onClick={() => fileInputRef.current?.click()}
@@ -132,7 +132,7 @@ export default function RegisterPage() {
                     required: 'Name is required',
                     minLength: { value: 2, message: 'Name must be at least 2 characters' },
                   })}
-                  className="w-full pl-10 pr-4 py-3 border border-gray-300 dark:border-gray-600 rounded-xl bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none transition-all"
+                  className="w-full pl-10 pr-4 py-3 border border-gray-300 dark:border-gray-600 rounded-xl bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none transition-all min-h-touch text-base"
                   placeholder="Your full name"
                 />
               </div>
@@ -156,7 +156,7 @@ export default function RegisterPage() {
                       message: 'Enter a valid email',
                     },
                   })}
-                  className="w-full pl-10 pr-4 py-3 border border-gray-300 dark:border-gray-600 rounded-xl bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none transition-all"
+                  className="w-full pl-10 pr-4 py-3 border border-gray-300 dark:border-gray-600 rounded-xl bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none transition-all min-h-touch text-base"
                   placeholder="you@example.com"
                 />
               </div>
@@ -177,7 +177,7 @@ export default function RegisterPage() {
                     required: 'Password is required',
                     minLength: { value: 6, message: 'Password must be at least 6 characters' },
                   })}
-                  className="w-full pl-10 pr-12 py-3 border border-gray-300 dark:border-gray-600 rounded-xl bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none transition-all"
+                  className="w-full pl-10 pr-12 py-3 border border-gray-300 dark:border-gray-600 rounded-xl bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none transition-all min-h-touch text-base"
                   placeholder="Create a password"
                 />
                 <button
@@ -205,7 +205,7 @@ export default function RegisterPage() {
                     required: 'Please confirm your password',
                     validate: (value) => value === password || 'Passwords do not match',
                   })}
-                  className="w-full pl-10 pr-4 py-3 border border-gray-300 dark:border-gray-600 rounded-xl bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none transition-all"
+                  className="w-full pl-10 pr-4 py-3 border border-gray-300 dark:border-gray-600 rounded-xl bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none transition-all min-h-touch text-base"
                   placeholder="Confirm your password"
                 />
               </div>
@@ -219,7 +219,7 @@ export default function RegisterPage() {
               whileTap={{ scale: 0.99 }}
               type="submit"
               disabled={loading}
-              className="w-full py-3 bg-primary-500 hover:bg-primary-600 text-white font-semibold rounded-xl shadow-lg shadow-primary-500/30 transition-all disabled:opacity-60 disabled:cursor-not-allowed"
+              className="w-full py-3 min-h-touch bg-primary-500 hover:bg-primary-600 text-white font-semibold rounded-xl shadow-lg shadow-primary-500/30 transition-all disabled:opacity-60 disabled:cursor-not-allowed touch-manipulation"
             >
               {loading ? (
                 <span className="flex items-center justify-center gap-2">

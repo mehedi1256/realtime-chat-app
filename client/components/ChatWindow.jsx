@@ -266,10 +266,10 @@ export default function ChatWindow({ onBack, onStartCall }) {
               <path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm0 14H6l-2 2V4h16v12z"/>
             </svg>
           </div>
-          <h2 className="text-xl font-semibold text-gray-700 dark:text-gray-300">
+          <h2 className="text-lg sm:text-xl font-semibold text-gray-700 dark:text-gray-300">
             ChatApp Web
           </h2>
-          <p className="text-gray-500 dark:text-gray-400 mt-2 max-w-sm">
+          <p className="text-sm sm:text-base text-gray-500 dark:text-gray-400 mt-2 max-w-sm mx-auto px-2">
             Select a conversation from the sidebar to start messaging. Your messages are end-to-end encrypted.
           </p>
         </motion.div>
@@ -278,20 +278,21 @@ export default function ChatWindow({ onBack, onStartCall }) {
   }
 
   return (
-    <div className="flex-1 flex flex-col h-full">
-      <div className="flex items-center gap-3 px-4 py-3 bg-chat-sidebar dark:bg-chat-header-dark border-b border-gray-200 dark:border-gray-700">
+    <div className="flex-1 flex flex-col h-full min-h-0">
+      <div className="flex items-center gap-2 sm:gap-3 px-3 sm:px-4 py-3 bg-chat-sidebar dark:bg-chat-header-dark border-b border-gray-200 dark:border-gray-700 flex-shrink-0">
         <button
           onClick={onBack}
-          className="md:hidden p-1 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg"
+          className="md:hidden min-h-touch min-w-touch flex items-center justify-center p-2 -ml-1 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg touch-manipulation"
+          aria-label="Back to chats"
         >
           <HiOutlineArrowLeft className="w-5 h-5" />
         </button>
         <Avatar user={selectedUser} size="md" showOnline />
         <div className="flex-1 min-w-0">
-          <h3 className="font-semibold text-gray-900 dark:text-white text-sm">
+          <h3 className="font-semibold text-gray-900 dark:text-white text-sm truncate">
             {selectedUser.name}
           </h3>
-          <p className="text-xs text-gray-500 dark:text-gray-400">
+          <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
             {selectedUser.isOnline
               ? isTyping
                 ? 'typing...'
@@ -299,17 +300,17 @@ export default function ChatWindow({ onBack, onStartCall }) {
               : formatLastSeen(selectedUser.lastSeen)}
           </p>
         </div>
-        <div className="flex items-center gap-1">
+        <div className="flex items-center gap-0.5 sm:gap-1 flex-shrink-0">
           <button
             onClick={() => onStartCall?.('audio')}
-            className="p-2 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg transition-colors text-gray-600 dark:text-gray-300"
+            className="min-h-touch min-w-touch flex items-center justify-center p-2 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg transition-colors text-gray-600 dark:text-gray-300 touch-manipulation"
             title="Audio call"
           >
             <HiOutlinePhone className="w-5 h-5" />
           </button>
           <button
             onClick={() => onStartCall?.('video')}
-            className="p-2 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg transition-colors text-gray-600 dark:text-gray-300"
+            className="min-h-touch min-w-touch flex items-center justify-center p-2 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg transition-colors text-gray-600 dark:text-gray-300 touch-manipulation"
             title="Video call"
           >
             <HiOutlineVideoCamera className="w-5 h-5" />
@@ -317,7 +318,7 @@ export default function ChatWindow({ onBack, onStartCall }) {
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto scrollbar-thin chat-pattern py-4">
+      <div className="flex-1 overflow-y-auto overflow-x-hidden scrollbar-thin chat-pattern py-3 sm:py-4 px-2 sm:px-4 min-h-0">
         <AnimatePresence>
           {messages.map((msg) => (
             <MessageBubble
@@ -351,7 +352,7 @@ export default function ChatWindow({ onBack, onStartCall }) {
 
       <form
         onSubmit={handleSend}
-        className="flex items-center gap-2 px-4 py-3 bg-chat-sidebar dark:bg-chat-header-dark border-t border-gray-200 dark:border-gray-700"
+        className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2.5 sm:py-3 bg-chat-sidebar dark:bg-chat-header-dark border-t border-gray-200 dark:border-gray-700 flex-shrink-0"
       >
         <EmojiPicker
           onSelect={(emoji) => {
@@ -365,9 +366,9 @@ export default function ChatWindow({ onBack, onStartCall }) {
         <button
           type="button"
           onClick={() => setShowFileUpload(true)}
-          className="p-2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 transition-colors"
+          className="min-h-touch min-w-touch flex items-center justify-center p-2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 transition-colors touch-manipulation"
         >
-          <HiOutlinePaperClip className="w-6 h-6" />
+          <HiOutlinePaperClip className="w-5 h-5 sm:w-6 sm:h-6" />
         </button>
         <input
           ref={inputRef}
@@ -383,13 +384,13 @@ export default function ChatWindow({ onBack, onStartCall }) {
           }}
           onKeyDown={handleKeyDown}
           placeholder="Type a message..."
-          className="flex-1 px-4 py-2.5 bg-white dark:bg-chat-input-dark rounded-xl text-sm text-gray-900 dark:text-white placeholder-gray-500 outline-none border border-gray-200 dark:border-gray-600 focus:border-primary-500 transition-colors"
+          className="flex-1 min-w-0 px-3 sm:px-4 py-2.5 bg-white dark:bg-chat-input-dark rounded-xl text-sm text-gray-900 dark:text-white placeholder-gray-500 outline-none border border-gray-200 dark:border-gray-600 focus:border-primary-500 transition-colors min-h-touch"
         />
         <motion.button
           whileTap={{ scale: 0.9 }}
           type="submit"
           disabled={editingMessage ? !editText.trim() : !text.trim()}
-          className="p-2.5 bg-primary-500 hover:bg-primary-600 text-white rounded-xl disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+          className="min-h-touch min-w-touch flex items-center justify-center p-2.5 bg-primary-500 hover:bg-primary-600 text-white rounded-xl disabled:opacity-40 disabled:cursor-not-allowed transition-colors touch-manipulation"
         >
           <HiOutlinePaperAirplane className="w-5 h-5 rotate-90" />
         </motion.button>

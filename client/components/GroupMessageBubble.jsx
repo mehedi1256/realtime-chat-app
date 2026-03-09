@@ -21,7 +21,7 @@ export default function GroupMessageBubble({ message, groupId }) {
 
   if (message.isDeleted) {
     return (
-      <div className={`flex ${isSender ? 'justify-end' : 'justify-start'} px-4 py-0.5`}>
+      <div className={`flex ${isSender ? 'justify-end' : 'justify-start'} px-2 sm:px-4 py-0.5`}>
         <div className="px-4 py-2 rounded-xl bg-gray-100 dark:bg-gray-800 italic text-gray-400 text-sm">
           This message was deleted
         </div>
@@ -33,9 +33,9 @@ export default function GroupMessageBubble({ message, groupId }) {
     <motion.div
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
-      className={`flex ${isSender ? 'justify-end' : 'justify-start'} px-4 py-0.5 group`}
+      className={`flex ${isSender ? 'justify-end' : 'justify-start'} px-2 sm:px-4 py-0.5 group`}
     >
-      <div className={`max-w-[75%] md:max-w-[65%] flex ${isSender ? 'flex-row-reverse' : 'flex-row'} gap-2`}>
+      <div className={`max-w-[85%] sm:max-w-[75%] md:max-w-[65%] min-w-0 flex ${isSender ? 'flex-row-reverse' : 'flex-row'} gap-2`}>
         {!isSender && (
           <div className="flex-shrink-0">
             <Avatar user={{ _id: message.sender?._id, name: senderName, profilePicture: senderPicture }} size="sm" />
