@@ -116,7 +116,7 @@ export default function useWebRTC() {
       localStreamRef.current = stream;
       setLocalStream(stream);
 
-      const pc = createPC(peer._id);
+      const pc = createPC(String(peer._id));
       stream.getTracks().forEach((track) => pc.addTrack(track, stream));
 
       const offer = await pc.createOffer();
@@ -124,7 +124,8 @@ export default function useWebRTC() {
       await pc.setLocalDescription(offer);
 
       const socket = getSocket();
-      socket?.emit('call_user', { to: peer._id, offer, type });
+      const toId = peer._id != null ? String(peer._id) : '';
+      if (toId) socket?.emit('call_user', { to: toId, offer, type });
     } catch (err) {
       console.error('Failed to start call:', err);
       cleanup();
@@ -150,7 +151,8 @@ export default function useWebRTC() {
       localStreamRef.current = stream;
       setLocalStream(stream);
 
-      const pc = createPC(cs.peerId);
+      const peerIdStr = String(cs.peerId);
+      const pc = createPC(peerIdStr);
       stream.getTracks().forEach((track) => pc.addTrack(track, stream));
 
       await pc.setRemoteDescription(new RTCSessionDescription(pendingOffer.current));
@@ -161,7 +163,7 @@ export default function useWebRTC() {
       await pc.setLocalDescription(answer);
 
       const socket = getSocket();
-      socket?.emit('call_accepted', { to: cs.peerId, answer });
+      socket?.emit('call_accepted', { to: peerIdStr, answer });
 
       flushIceCandidates();
       acceptCallStore();
@@ -196,7 +198,7 @@ export default function useWebRTC() {
     const cs = useStore.getState().callState;
     const socket = getSocket();
     if (socket && cs?.peerId) {
-      socket.emit('call_ended', { to: cs.peerId });
+      socket.emit('call_ended', { to: String(cs.peerId) });
     }
     cleanup();
     endCallStore();
@@ -207,7 +209,7 @@ export default function useWebRTC() {
     const cs = useStore.getState().callState;
     const socket = getSocket();
     if (socket && cs?.peerId) {
-      socket.emit('call_rejected', { to: cs.peerId });
+      socket.emit('call_rejected', { to: String(cs.peerId) });
     }
     cleanup();
     endCallStore();

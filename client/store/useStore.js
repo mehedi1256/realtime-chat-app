@@ -11,8 +11,13 @@ const useStore = create(
       selectedUser: null,
       messages: [],
       typingUsers: new Set(),
+      groups: [],
+      selectedGroup: null,
+      groupMessages: [],
+      groupTyping: new Map(),
       darkMode: false,
       onlineUsers: new Set(),
+      groupCallState: null,
 
       setHydrated: (value) => set({ hasHydrated: value }),
       setUser: (user) => set({ user }),
@@ -27,12 +32,47 @@ const useStore = create(
           selectedUser: null,
           messages: [],
           typingUsers: new Set(),
+          groups: [],
+          selectedGroup: null,
+          groupMessages: [],
+          groupTyping: new Map(),
           onlineUsers: new Set(),
+          groupCallState: null,
         }),
 
       setUsers: (users) => set({ users }),
 
       setSelectedUser: (selectedUser) => set({ selectedUser, messages: [] }),
+
+      setGroups: (groups) => set({ groups }),
+      setSelectedGroup: (selectedGroup) => set({ selectedGroup, groupMessages: [] }),
+      setGroupMessages: (groupMessages) => set({ groupMessages }),
+      addGroupMessage: (message) =>
+        set((state) => {
+          if (state.groupMessages.some((m) => m._id === message._id)) return state;
+          return { groupMessages: [...state.groupMessages, message] };
+        }),
+      setGroupTyping: (groupId, userId, isTyping) =>
+        set((state) => {
+          const next = new Map(state.groupTyping);
+          const prevSet = next.get(groupId);
+          const set = new Set(prevSet || []);
+          if (isTyping) set.add(userId);
+          else set.delete(userId);
+          if (set.size) next.set(groupId, set);
+          else next.delete(groupId);
+          return { groupTyping: next };
+        }),
+      updateGroupInList: (group) =>
+        set((state) => ({
+          groups: state.groups.map((g) => (g._id === group._id ? group : g)),
+        })),
+      updateGroupLastMessage: (groupId, message) =>
+        set((state) => ({
+          groups: state.groups.map((g) =>
+            g._id === groupId ? { ...g, lastMessage: message } : g
+          ),
+        })),
 
       setMessages: (messages) => set({ messages }),
 
@@ -161,6 +201,9 @@ const useStore = create(
         ),
 
       endCall: () => set({ callState: null }),
+
+      setGroupCallState: (groupCallState) => set({ groupCallState }),
+      endGroupCall: () => set({ groupCallState: null }),
     }),
     {
       name: 'chat-store',

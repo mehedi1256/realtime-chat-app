@@ -11,6 +11,8 @@ const { initSocket } = require('./sockets/socketHandler');
 const authRoutes = require('./routes/authRoutes');
 const userRoutes = require('./routes/userRoutes');
 const messageRoutes = require('./routes/messageRoutes');
+const groupRoutes = require('./routes/groupRoutes');
+const groupMessageRoutes = require('./routes/groupMessageRoutes');
 
 const app = express();
 const server = http.createServer(app);
@@ -39,6 +41,8 @@ app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/messages', messageRoutes);
+app.use('/api/groups', groupRoutes);
+app.use('/api/groups', groupMessageRoutes);
 
 app.get('/api/health', (_req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });

@@ -5,19 +5,19 @@ import { useDropzone } from 'react-dropzone';
 import { motion, AnimatePresence } from 'framer-motion';
 import { HiOutlineCloudUpload, HiOutlineX, HiOutlineDocument } from 'react-icons/hi';
 import toast from 'react-hot-toast';
-import { messageAPI } from '@/services/api';
+import { encryptFileContent } from '@/utils/encryption';
 
-const MAX_SIZE = 50 * 1024 * 1024;
+const MAX_SIZE = 10 * 1024 * 1024;
 
-export default function FileUpload({ onFileUploaded, onClose }) {
-  const [uploading, setUploading] = useState(false);
+export default function FileUpload({ onFileUploaded, onClose, conversationKey }) {
+  const [processing, setProcessing] = useState(false);
   const [progress, setProgress] = useState(0);
   const [selectedFile, setSelectedFile] = useState(null);
   const [preview, setPreview] = useState(null);
 
   const onDrop = useCallback((accepted, rejected) => {
     if (rejected.length > 0) {
-      toast.error('File is too large (max 50MB)');
+      toast.error('File is too large (max 10MB for E2E encryption)');
       return;
     }
     const file = accepted[0];
@@ -39,21 +39,45 @@ export default function FileUpload({ onFileUploaded, onClose }) {
     multiple: false,
   });
 
-  const handleUpload = async () => {
-    if (!selectedFile) return;
-    setUploading(true);
-    setProgress(0);
+  const handleSend = () => {
+    if (!selectedFile || !conversationKey) return;
+    setProcessing(true);
+    setProgress(10);
 
-    try {
-      const res = await messageAPI.uploadFile(selectedFile, setProgress);
-      onFileUploaded(res.data);
-      toast.success('File uploaded');
-      onClose();
-    } catch {
-      toast.error('Upload failed');
-    } finally {
-      setUploading(false);
-    }
+    const reader = new FileReader();
+    reader.onload = () => {
+      try {
+        const dataUrl = reader.result;
+        const base64 = typeof dataUrl === 'string' && dataUrl.includes(',')
+          ? dataUrl.split(',')[1]
+          : '';
+        if (!base64) {
+          toast.error('Could not read file');
+          setProcessing(false);
+          return;
+        }
+        setProgress(50);
+        const encrypted = encryptFileContent(base64, conversationKey);
+        setProgress(90);
+        onFileUploaded({
+          encryptedMessage: encrypted,
+          fileName: selectedFile.name,
+          fileType: selectedFile.type,
+        });
+        setProgress(100);
+        toast.success('File sent (stored only on your and recipient\'s device)');
+        onClose();
+      } catch (err) {
+        toast.error('Failed to encrypt file');
+      } finally {
+        setProcessing(false);
+      }
+    };
+    reader.onerror = () => {
+      toast.error('Failed to read file');
+      setProcessing(false);
+    };
+    reader.readAsDataURL(selectedFile);
   };
 
   const formatSize = (bytes) => {
@@ -79,11 +103,14 @@ export default function FileUpload({ onFileUploaded, onClose }) {
           onClick={(e) => e.stopPropagation()}
         >
           <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Upload File</h3>
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Send File (E2E)</h3>
             <button onClick={onClose} className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg">
               <HiOutlineX className="w-5 h-5" />
             </button>
           </div>
+          <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">
+            File is encrypted on your device and never stored on the server. Max 10MB.
+          </p>
 
           {!selectedFile ? (
             <div
@@ -99,7 +126,7 @@ export default function FileUpload({ onFileUploaded, onClose }) {
               <p className="text-gray-600 dark:text-gray-300 font-medium">
                 {isDragActive ? 'Drop file here' : 'Drag & drop or click to select'}
               </p>
-              <p className="text-gray-400 text-sm mt-1">Max size: 50MB</p>
+              <p className="text-gray-400 text-sm mt-1">Max size: 10MB</p>
             </div>
           ) : (
             <div className="space-y-4">
@@ -117,7 +144,7 @@ export default function FileUpload({ onFileUploaded, onClose }) {
                 </div>
               )}
 
-              {uploading && (
+              {processing && (
                 <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
                   <motion.div
                     className="bg-primary-500 h-2 rounded-full"
@@ -131,16 +158,16 @@ export default function FileUpload({ onFileUploaded, onClose }) {
                 <button
                   onClick={() => { setSelectedFile(null); setPreview(null); }}
                   className="flex-1 py-2 border border-gray-300 dark:border-gray-600 rounded-xl text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
-                  disabled={uploading}
+                  disabled={processing}
                 >
                   Change
                 </button>
                 <button
-                  onClick={handleUpload}
-                  disabled={uploading}
+                  onClick={handleSend}
+                  disabled={processing}
                   className="flex-1 py-2 bg-primary-500 hover:bg-primary-600 text-white rounded-xl transition-colors disabled:opacity-60"
                 >
-                  {uploading ? `${progress}%` : 'Send'}
+                  {processing ? `Encrypting ${progress}%` : 'Send'}
                 </button>
               </div>
             </div>

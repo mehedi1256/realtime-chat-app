@@ -5,7 +5,7 @@ import { HiOutlineDownload, HiOutlineDocument } from 'react-icons/hi';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
 
-async function downloadFile(url, fileName) {
+async function downloadFromUrl(url, fileName) {
   const res = await fetch(url, { mode: 'cors' });
   if (!res.ok) throw new Error('Download failed');
   const blob = await res.blob();
@@ -19,8 +19,18 @@ async function downloadFile(url, fileName) {
   URL.revokeObjectURL(blobUrl);
 }
 
-export default function FilePreview({ fileUrl, fileName, fileType }) {
-  const fullUrl = `${API_URL}${fileUrl}`;
+function downloadFromBlobUrl(blobUrl, fileName) {
+  const a = document.createElement('a');
+  a.href = blobUrl;
+  a.download = fileName || 'download';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+}
+
+export default function FilePreview({ fileUrl, fileName, fileType, localBlobUrl }) {
+  const isLocal = !!localBlobUrl;
+  const fullUrl = isLocal ? localBlobUrl : `${API_URL}${fileUrl}`;
   const isImage = fileType?.startsWith('image/');
   const isVideo = fileType?.startsWith('video/');
   const [downloading, setDownloading] = useState(false);
@@ -30,9 +40,13 @@ export default function FilePreview({ fileUrl, fileName, fileType }) {
     if (downloading) return;
     setDownloading(true);
     try {
-      await downloadFile(fullUrl, fileName);
+      if (isLocal) {
+        downloadFromBlobUrl(localBlobUrl, fileName);
+      } else {
+        await downloadFromUrl(fullUrl, fileName);
+      }
     } catch {
-      window.open(fullUrl, '_blank');
+      if (!isLocal) window.open(fullUrl, '_blank');
     } finally {
       setDownloading(false);
     }
@@ -45,7 +59,7 @@ export default function FilePreview({ fileUrl, fileName, fileType }) {
           src={fullUrl}
           alt={fileName || 'Image'}
           className="w-full h-auto max-h-64 object-cover rounded-lg cursor-pointer hover:opacity-90 transition-opacity"
-          onClick={() => window.open(fullUrl, '_blank')}
+          onClick={() => (isLocal ? downloadFromBlobUrl(localBlobUrl, fileName) : window.open(fullUrl, '_blank'))}
         />
         {fileName && (
           <p className="text-xs mt-1 opacity-70 truncate">{fileName}</p>

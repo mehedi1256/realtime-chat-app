@@ -1,37 +1,63 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import {
   HiOutlineDotsVertical,
   HiOutlinePencil,
   HiOutlineTrash,
   HiOutlineCheck,
+  HiOutlineShare,
 } from 'react-icons/hi';
 import FilePreview from './FilePreview';
-import { decryptMessage, generateConversationKey } from '@/utils/encryption';
+import { decryptMessage, decryptFileContent, generateConversationKey } from '@/utils/encryption';
 import { formatMessageTime } from '@/utils/formatTime';
 import useStore from '@/store/useStore';
 
 const QUICK_REACTIONS = ['❤️', '😂', '👍', '😮', '😢', '🙏'];
 
-export default function MessageBubble({ message, onEdit, onDelete, onReact }) {
+export default function MessageBubble({ message, onEdit, onDelete, onReact, onForward }) {
   const currentUser = useStore((s) => s.user);
   const selectedUser = useStore((s) => s.selectedUser);
   const [showMenu, setShowMenu] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [showReactions, setShowReactions] = useState(false);
+  const [localFileUrl, setLocalFileUrl] = useState(null);
 
   const isSender = (message.sender?._id || message.sender) === currentUser?._id;
   const isDeleted = message.isDeleted;
+  const isE2EFile = !isDeleted && message.fileName && message.encryptedMessage && !message.fileUrl;
 
   const conversationKey = generateConversationKey(
     currentUser?._id,
     selectedUser?._id
   );
 
+  useEffect(() => {
+    if (!isE2EFile || !message.encryptedMessage) return;
+    const base64 = decryptFileContent(message.encryptedMessage, conversationKey);
+    if (!base64) return;
+    let url = null;
+    try {
+      const binary = atob(base64);
+      const bytes = new Uint8Array(binary.length);
+      for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+      const blob = new Blob([bytes], { type: message.fileType || 'application/octet-stream' });
+      url = URL.createObjectURL(blob);
+      setLocalFileUrl(url);
+    } catch {
+      return () => {};
+    }
+    return () => {
+      if (url) URL.revokeObjectURL(url);
+    };
+  }, [isE2EFile, message._id, conversationKey]);
+
   const decryptedText = isDeleted
     ? ''
-    : decryptMessage(message.encryptedMessage, conversationKey);
+    : isE2EFile
+      ? ''
+      : decryptMessage(message.encryptedMessage, conversationKey);
 
   if (isDeleted) {
     return (
@@ -57,11 +83,12 @@ export default function MessageBubble({ message, onEdit, onDelete, onReact }) {
               : 'bg-chat-receiver dark:bg-chat-receiver-dark text-gray-900 dark:text-gray-100 rounded-bl-sm'
           }`}
         >
-          {message.fileUrl && (
+          {(message.fileUrl || (isE2EFile && localFileUrl)) && (
             <FilePreview
               fileUrl={message.fileUrl}
               fileName={message.fileName}
               fileType={message.fileType}
+              localBlobUrl={localFileUrl}
             />
           )}
 
@@ -116,6 +143,15 @@ export default function MessageBubble({ message, onEdit, onDelete, onReact }) {
           >
             😊
           </button>
+          {(message.fileUrl || (message.fileName && message.encryptedMessage)) && onForward && (
+            <button
+              onClick={() => onForward(message)}
+              className="p-1 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-full text-gray-400"
+              title="Forward"
+            >
+              <HiOutlineShare className="w-4 h-4" />
+            </button>
+          )}
           {isSender && (
             <button
               onClick={() => setShowMenu(!showMenu)}
@@ -153,26 +189,52 @@ export default function MessageBubble({ message, onEdit, onDelete, onReact }) {
             animate={{ opacity: 1, scale: 1 }}
             className={`absolute top-full mt-1 ${isSender ? 'right-0' : 'left-0'} bg-white dark:bg-gray-700 rounded-xl shadow-lg border dark:border-gray-600 py-1 z-10 min-w-[140px]`}
           >
-            {decryptedText && (
-              <button
-                onClick={() => {
-                  onEdit(message, decryptedText);
-                  setShowMenu(false);
-                }}
-                className="w-full px-4 py-2 text-left text-sm flex items-center gap-2 hover:bg-gray-100 dark:hover:bg-gray-600"
-              >
-                <HiOutlinePencil className="w-4 h-4" /> Edit
-              </button>
+            {showDeleteConfirm ? (
+              <>
+                <p className="px-4 py-2 text-sm text-gray-600 dark:text-gray-300">Delete this message?</p>
+                <div className="flex gap-2 px-3 py-2 border-t border-gray-200 dark:border-gray-600">
+                  <button
+                    onClick={() => {
+                      setShowDeleteConfirm(false);
+                      setShowMenu(false);
+                    }}
+                    className="flex-1 py-1.5 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600 rounded-lg transition-colors"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={() => {
+                      onDelete(message._id);
+                      setShowDeleteConfirm(false);
+                      setShowMenu(false);
+                    }}
+                    className="flex-1 py-1.5 text-sm font-medium text-white bg-red-500 hover:bg-red-600 rounded-lg transition-colors"
+                  >
+                    Delete
+                  </button>
+                </div>
+              </>
+            ) : (
+              <>
+                {decryptedText && (
+                  <button
+                    onClick={() => {
+                      onEdit(message, decryptedText);
+                      setShowMenu(false);
+                    }}
+                    className="w-full px-4 py-2 text-left text-sm flex items-center gap-2 hover:bg-gray-100 dark:hover:bg-gray-600"
+                  >
+                    <HiOutlinePencil className="w-4 h-4" /> Edit
+                  </button>
+                )}
+                <button
+                  onClick={() => setShowDeleteConfirm(true)}
+                  className="w-full px-4 py-2 text-left text-sm flex items-center gap-2 hover:bg-gray-100 dark:hover:bg-gray-600 text-red-500"
+                >
+                  <HiOutlineTrash className="w-4 h-4" /> Delete
+                </button>
+              </>
             )}
-            <button
-              onClick={() => {
-                onDelete(message._id);
-                setShowMenu(false);
-              }}
-              className="w-full px-4 py-2 text-left text-sm flex items-center gap-2 hover:bg-gray-100 dark:hover:bg-gray-600 text-red-500"
-            >
-              <HiOutlineTrash className="w-4 h-4" /> Delete
-            </button>
           </motion.div>
         )}
       </div>

@@ -65,4 +65,35 @@ export const messageAPI = {
   },
 };
 
+export const groupAPI = {
+  create: (data) => {
+    const formData = new FormData();
+    formData.append('groupName', data.groupName);
+    if (data.memberIds?.length) {
+      formData.append('memberIds', JSON.stringify(data.memberIds));
+    }
+    if (data.groupAvatar) formData.append('groupAvatar', data.groupAvatar);
+    return api.post('/groups', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+  },
+  getMyGroups: () => api.get('/groups'),
+  getById: (groupId) => api.get(`/groups/${groupId}`),
+  update: (groupId, data) => {
+    const formData = new FormData();
+    if (data.groupName) formData.append('groupName', data.groupName);
+    if (data.groupAvatar) formData.append('groupAvatar', data.groupAvatar);
+    return api.put(`/groups/${groupId}`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+  },
+  addMembers: (groupId, memberIds) => api.post(`/groups/${groupId}/members`, { memberIds }),
+  removeMember: (groupId, userId) => api.delete(`/groups/${groupId}/members/${userId}`),
+  leave: (groupId) => api.post(`/groups/${groupId}/leave`),
+};
+
+export const groupMessageAPI = {
+  getMessages: (groupId, page = 1) => api.get(`/groups/${groupId}/messages?page=${page}`),
+};
+
 export default api;

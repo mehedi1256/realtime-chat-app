@@ -2,28 +2,38 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { HiOutlineSearch, HiOutlineLogout, HiOutlineVideoCamera } from 'react-icons/hi';
+import { HiOutlineSearch, HiOutlineLogout, HiOutlineVideoCamera, HiOutlineUserGroup, HiOutlinePlus } from 'react-icons/hi';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import toast from 'react-hot-toast';
 import Avatar from './Avatar';
 import DarkModeToggle from './DarkModeToggle';
-import { userAPI } from '@/services/api';
+import CreateGroupModal from './CreateGroupModal';
+import { userAPI, groupAPI } from '@/services/api';
 import { decryptMessage, generateConversationKey } from '@/utils/encryption';
 import { formatMessageTime } from '@/utils/formatTime';
 import useStore from '@/store/useStore';
-import { disconnectSocket } from '@/services/socket';
+import { disconnectSocket, getSocket } from '@/services/socket';
 
-export default function Sidebar({ onSelectUser, isMobileOpen }) {
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+
+export default function Sidebar({ onSelectUser, onSelectGroup, isMobileOpen }) {
   const router = useRouter();
   const user = useStore((s) => s.user);
   const users = useStore((s) => s.users);
   const setUsers = useStore((s) => s.setUsers);
+  const groups = useStore((s) => s.groups);
+  const setGroups = useStore((s) => s.setGroups);
   const selectedUser = useStore((s) => s.selectedUser);
+  const selectedGroup = useStore((s) => s.selectedGroup);
+  const updateGroupInList = useStore((s) => s.updateGroupInList);
   const logout = useStore((s) => s.logout);
 
   const [search, setSearch] = useState('');
   const [filteredUsers, setFilteredUsers] = useState([]);
+  const [filteredGroups, setFilteredGroups] = useState([]);
+  const [showCreateGroup, setShowCreateGroup] = useState(false);
+  const [activeTab, setActiveTab] = useState('chats');
 
   const fetchUsers = useCallback(async () => {
     try {
@@ -34,6 +44,15 @@ export default function Sidebar({ onSelectUser, isMobileOpen }) {
     }
   }, [setUsers]);
 
+  const fetchGroups = useCallback(async () => {
+    try {
+      const res = await groupAPI.getMyGroups();
+      setGroups(res.data.groups || []);
+    } catch {
+      setGroups([]);
+    }
+  }, [setGroups]);
+
   useEffect(() => {
     fetchUsers();
     const interval = setInterval(fetchUsers, 30000);
@@ -41,13 +60,21 @@ export default function Sidebar({ onSelectUser, isMobileOpen }) {
   }, [fetchUsers]);
 
   useEffect(() => {
+    fetchGroups();
+    const interval = setInterval(fetchGroups, 30000);
+    return () => clearInterval(interval);
+  }, [fetchGroups]);
+
+  useEffect(() => {
     if (search.trim()) {
       const q = search.toLowerCase();
       setFilteredUsers(users.filter((u) => u.name.toLowerCase().includes(q)));
+      setFilteredGroups(groups.filter((g) => g.groupName?.toLowerCase().includes(q)));
     } else {
       setFilteredUsers(users);
+      setFilteredGroups(groups);
     }
-  }, [search, users]);
+  }, [search, users, groups]);
 
   const handleLogout = () => {
     disconnectSocket();
@@ -58,11 +85,30 @@ export default function Sidebar({ onSelectUser, isMobileOpen }) {
 
   const getLastMessagePreview = (u) => {
     if (!u.lastMessage) return '';
-    if (u.lastMessage.fileUrl) return '📎 File';
+    if (u.lastMessage.fileUrl || (u.lastMessage.fileName && u.lastMessage.encryptedMessage)) return '📎 File';
     if (!u.lastMessage.encryptedMessage) return '';
     const key = generateConversationKey(user?._id, u._id);
     const decrypted = decryptMessage(u.lastMessage.encryptedMessage, key);
     return decrypted.length > 35 ? decrypted.slice(0, 35) + '...' : decrypted;
+  };
+
+  const getGroupLastPreview = (g) => {
+    if (!g.lastMessage) return 'No messages yet';
+    if (g.lastMessage.fileUrl || g.lastMessage.fileName) return '📎 File';
+    return g.lastMessage.encryptedMessage ? 'Encrypted message' : 'No messages yet';
+  };
+
+  const handleCreateGroup = async (data) => {
+    const res = await groupAPI.create({
+      groupName: data.groupName,
+      memberIds: data.memberIds,
+      groupAvatar: data.groupAvatar,
+    });
+    const current = useStore.getState().groups || [];
+    setGroups([res.data.group, ...current]);
+    onSelectGroup?.(res.data.group);
+    setShowCreateGroup(false);
+    toast.success('Group created');
   };
 
   return (
@@ -107,13 +153,48 @@ export default function Sidebar({ onSelectUser, isMobileOpen }) {
             type="text"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search or start a new chat"
+            placeholder="Search chats and groups"
             className="w-full pl-9 pr-4 py-2 bg-white dark:bg-chat-input-dark rounded-lg text-sm text-gray-900 dark:text-white placeholder-gray-500 outline-none border border-gray-200 dark:border-gray-600 focus:border-primary-500 transition-colors"
           />
         </div>
+
+        <div className="flex mt-2 gap-1 p-1 bg-gray-100 dark:bg-gray-700/50 rounded-lg">
+          <button
+            type="button"
+            onClick={() => setActiveTab('chats')}
+            className={`flex-1 py-1.5 rounded-md text-sm font-medium transition-colors ${
+              activeTab === 'chats'
+                ? 'bg-white dark:bg-gray-700 text-primary-600 dark:text-primary-400 shadow'
+                : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
+            }`}
+          >
+            Chats
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab('groups')}
+            className={`flex-1 py-1.5 rounded-md text-sm font-medium transition-colors ${
+              activeTab === 'groups'
+                ? 'bg-white dark:bg-gray-700 text-primary-600 dark:text-primary-400 shadow'
+                : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
+            }`}
+          >
+            Groups
+          </button>
+        </div>
+        {activeTab === 'groups' && (
+          <button
+            type="button"
+            onClick={() => setShowCreateGroup(true)}
+            className="mt-2 w-full flex items-center justify-center gap-2 py-2 rounded-lg border border-dashed border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700/50 text-sm"
+          >
+            <HiOutlinePlus className="w-4 h-4" /> New group
+          </button>
+        )}
       </div>
 
       <div className="flex-1 overflow-y-auto scrollbar-thin">
+        {activeTab === 'chats' && (
         <AnimatePresence>
           {filteredUsers.length === 0 ? (
             <div className="p-8 text-center text-gray-400 text-sm">
@@ -163,7 +244,68 @@ export default function Sidebar({ onSelectUser, isMobileOpen }) {
             ))
           )}
         </AnimatePresence>
+        )}
+
+        {activeTab === 'groups' && (
+          <AnimatePresence>
+            {filteredGroups.length === 0 ? (
+              <div className="p-8 text-center text-gray-400 text-sm">
+                {search ? 'No groups found' : 'No groups yet. Create one!'}
+              </div>
+            ) : (
+              filteredGroups.map((g) => (
+                <motion.div
+                  key={g._id}
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  onClick={() => onSelectGroup(g)}
+                  className={`flex items-center gap-3 px-4 py-3 cursor-pointer transition-colors hover:bg-gray-100 dark:hover:bg-gray-700/50 ${
+                    selectedGroup?._id === g._id ? 'bg-gray-200 dark:bg-gray-700' : ''
+                  }`}
+                >
+                  {g.groupAvatar ? (
+                    <img
+                      src={`${API_URL}${g.groupAvatar}`}
+                      alt=""
+                      className="w-12 h-12 rounded-full object-cover flex-shrink-0"
+                    />
+                  ) : (
+                    <div className="w-12 h-12 rounded-full bg-primary-100 dark:bg-primary-900/40 flex items-center justify-center flex-shrink-0">
+                      <HiOutlineUserGroup className="w-6 h-6 text-primary-500" />
+                    </div>
+                  )}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between">
+                      <h3 className="font-medium text-gray-900 dark:text-white text-sm truncate">
+                        {g.groupName}
+                      </h3>
+                      {g.lastMessage && (
+                        <span className="text-[11px] text-gray-400 flex-shrink-0">
+                          {formatMessageTime(g.lastMessage.createdAt)}
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 truncate mt-0.5">
+                      {g.groupMembers?.length > 0 && (
+                        <span>{g.groupMembers.length} members · </span>
+                      )}
+                      {getGroupLastPreview(g)}
+                    </p>
+                  </div>
+                </motion.div>
+              ))
+            )}
+          </AnimatePresence>
+        )}
       </div>
+
+      {showCreateGroup && (
+        <CreateGroupModal
+          onClose={() => setShowCreateGroup(false)}
+          onCreate={handleCreateGroup}
+        />
+      )}
     </div>
   );
 }

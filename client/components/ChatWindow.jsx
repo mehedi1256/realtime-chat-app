@@ -16,10 +16,13 @@ import MessageBubble from './MessageBubble';
 import TypingIndicator from './TypingIndicator';
 import EmojiPicker from './EmojiPicker';
 import FileUpload from './FileUpload';
+import ForwardModal from './ForwardModal';
 import { messageAPI } from '@/services/api';
 import { getSocket } from '@/services/socket';
 import {
   encryptMessage,
+  encryptFileContent,
+  decryptFileContent,
   generateConversationKey,
 } from '@/utils/encryption';
 import { formatLastSeen } from '@/utils/formatTime';
@@ -41,11 +44,14 @@ export default function ChatWindow({ onBack, onStartCall }) {
   const [showFileUpload, setShowFileUpload] = useState(false);
   const [editingMessage, setEditingMessage] = useState(null);
   const [editText, setEditText] = useState('');
+  const [forwardOpen, setForwardOpen] = useState(false);
+  const [forwardPayload, setForwardPayload] = useState(null);
   const messagesEndRef = useRef(null);
   const inputRef = useRef(null);
   const typingTimeoutRef = useRef(null);
 
   const conversationKey = generateConversationKey(user?._id, selectedUser?._id);
+  const users = useStore((s) => s.users);
   const isTyping = typingUsers.has?.(selectedUser?._id) || false;
 
   const scrollToBottom = useCallback(() => {
@@ -131,7 +137,15 @@ export default function ChatWindow({ onBack, onStartCall }) {
 
   const handleFileUploaded = (fileData) => {
     const socket = getSocket();
-    if (socket) {
+    if (!socket) return;
+    if (fileData.encryptedMessage) {
+      socket.emit('send_message', {
+        receiverId: selectedUser._id,
+        encryptedMessage: fileData.encryptedMessage,
+        fileName: fileData.fileName,
+        fileType: fileData.fileType,
+      });
+    } else {
       socket.emit('send_message', {
         receiverId: selectedUser._id,
         encryptedMessage: '',
@@ -169,6 +183,68 @@ export default function ChatWindow({ onBack, onStartCall }) {
       });
     }
   };
+
+  const getFileBase64 = useCallback(
+    async (message) => {
+      if (message.fileUrl) {
+        const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+        const res = await fetch(`${API_URL}${message.fileUrl}`);
+        if (!res.ok) throw new Error('Fetch failed');
+        const blob = await res.blob();
+        return new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => {
+            const dataUrl = reader.result;
+            const base64 = typeof dataUrl === 'string' && dataUrl.includes(',') ? dataUrl.split(',')[1] : '';
+            resolve({ base64, fileName: message.fileName, fileType: message.fileType });
+          };
+          reader.onerror = reject;
+          reader.readAsDataURL(blob);
+        });
+      }
+      if (message.fileName && message.encryptedMessage) {
+        const base64 = decryptFileContent(message.encryptedMessage, conversationKey);
+        return { base64, fileName: message.fileName, fileType: message.fileType };
+      }
+      throw new Error('Not a file message');
+    },
+    [conversationKey]
+  );
+
+  const handleForwardRequest = useCallback(
+    async (message) => {
+      const hasFile = message.fileUrl || (message.fileName && message.encryptedMessage);
+      if (!hasFile) return;
+      try {
+        const payload = await getFileBase64(message);
+        setForwardPayload(payload);
+        setForwardOpen(true);
+      } catch {
+        toast.error('Could not prepare file to forward');
+      }
+    },
+    [getFileBase64]
+  );
+
+  const handleForwardConfirm = useCallback(
+    async (recipientIds) => {
+      if (!forwardPayload || !user?._id) return;
+      const socket = getSocket();
+      if (!socket) return;
+      for (const receiverId of recipientIds) {
+        const key = generateConversationKey(user._id, receiverId);
+        const encrypted = encryptFileContent(forwardPayload.base64, key);
+        socket.emit('send_message', {
+          receiverId,
+          encryptedMessage: encrypted,
+          fileName: forwardPayload.fileName,
+          fileType: forwardPayload.fileType,
+        });
+      }
+      toast.success(`Forwarded to ${recipientIds.length} user(s)`);
+    },
+    [forwardPayload, user?._id]
+  );
 
   const handleKeyDown = (e) => {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -250,6 +326,7 @@ export default function ChatWindow({ onBack, onStartCall }) {
               onEdit={handleEdit}
               onDelete={handleDelete}
               onReact={handleReact}
+              onForward={handleForwardRequest}
             />
           ))}
         </AnimatePresence>
@@ -322,6 +399,17 @@ export default function ChatWindow({ onBack, onStartCall }) {
         <FileUpload
           onFileUploaded={handleFileUploaded}
           onClose={() => setShowFileUpload(false)}
+          conversationKey={conversationKey}
+        />
+      )}
+
+      {forwardOpen && (
+        <ForwardModal
+          users={users}
+          currentUserId={user?._id}
+          fileName={forwardPayload?.fileName}
+          onClose={() => { setForwardOpen(false); setForwardPayload(null); }}
+          onForward={handleForwardConfirm}
         />
       )}
     </div>

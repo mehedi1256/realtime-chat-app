@@ -1,6 +1,8 @@
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
 const Message = require('../models/Message');
+const Group = require('../models/Group');
+const GroupMessage = require('../models/GroupMessage');
 
 const onlineUsers = new Map();
 
@@ -47,6 +49,140 @@ const initSocket = (server) => {
     io.emit('user_online', { userId });
 
     socket.join(userId);
+
+    // ── Group chat ──
+
+    socket.on('join_group', async (groupId) => {
+      try {
+        const group = await Group.findById(groupId);
+        if (!group) return;
+        const isMember = group.groupMembers.some((m) => m.toString() === userId);
+        if (!isMember) return;
+        socket.join(`group:${groupId}`);
+      } catch (err) {
+        console.error('join_group error:', err);
+      }
+    });
+
+    socket.on('leave_group', (groupId) => {
+      socket.leave(`group:${groupId}`);
+    });
+
+    socket.on('send_group_message', async (data) => {
+      try {
+        const { groupId, encryptedMessage, fileUrl, fileName, fileType } = data;
+        const group = await Group.findById(groupId);
+        if (!group) return socket.emit('error', { message: 'Group not found' });
+        const isMember = group.groupMembers.some((m) => m.toString() === userId);
+        if (!isMember) return socket.emit('error', { message: 'Not a member' });
+
+        const msg = await GroupMessage.create({
+          groupId,
+          sender: userId,
+          encryptedMessage: encryptedMessage || '',
+          fileUrl: fileUrl || '',
+          fileName: fileName || '',
+          fileType: fileType || '',
+        });
+
+        const populated = await GroupMessage.findById(msg._id).populate(
+          'sender',
+          'name profilePicture'
+        );
+
+        io.to(`group:${groupId}`).emit('receive_group_message', populated);
+      } catch (error) {
+        socket.emit('error', { message: 'Failed to send group message' });
+      }
+    });
+
+    socket.on('group_typing', ({ groupId }) => {
+      socket.to(`group:${groupId}`).emit('group_typing', { userId, groupId });
+    });
+
+    socket.on('group_stop_typing', ({ groupId }) => {
+      socket.to(`group:${groupId}`).emit('group_stop_typing', { userId, groupId });
+    });
+
+    socket.on('group_members_added', ({ groupId, group, addedIds }) => {
+      const populated = group;
+      io.to(`group:${groupId}`).emit('group_updated', populated);
+      (addedIds || []).forEach((id) => {
+        const sid = onlineUsers.get(id);
+        if (sid) io.to(sid).emit('added_to_group', { group: populated });
+      });
+    });
+
+    // ── Group calling ──
+
+    socket.on('group_call_start', async ({ groupId, offer, type }) => {
+      try {
+        const gId = groupId != null ? String(groupId) : '';
+        if (!gId) return;
+        const group = await Group.findById(gId);
+        if (!group) return socket.emit('error', { message: 'Group not found' });
+        const isMember = group.groupMembers.some((m) => m.toString() === userId);
+        if (!isMember) return;
+
+        socket.join(`group-call:${gId}`);
+        const payload = {
+          groupId: gId,
+          from: {
+            id: userId,
+            name: socket.user.name,
+            profilePicture: socket.user.profilePicture,
+          },
+          offer: offer || null,
+          type: type || 'video',
+        };
+        // Emit to every group member by userId (so they get the call even if group chat isn't open)
+        const memberIds = group.groupMembers.map((m) => m.toString()).filter((id) => id !== userId);
+        memberIds.forEach((memberId) => {
+          io.to(memberId).emit('incoming_group_call', payload);
+        });
+      } catch (err) {
+        console.error('group_call_start error:', err);
+      }
+    });
+
+    socket.on('join_group_call', async ({ groupId, answer, toUserId }) => {
+      socket.join(`group-call:${groupId}`);
+      socket.to(`group-call:${groupId}`).emit('group_call_participant_joined', {
+        groupId,
+        userId,
+        name: socket.user.name,
+        profilePicture: socket.user.profilePicture,
+      });
+      if (toUserId && answer) {
+        const toSocketId = onlineUsers.get(toUserId);
+        if (toSocketId) io.to(toSocketId).emit('webrtc_answer', { from: userId, answer });
+      }
+    });
+
+    socket.on('webrtc_offer', ({ groupId, toUserId, offer }) => {
+      const toId = toUserId != null ? String(toUserId) : '';
+      if (toId) io.to(toId).emit('webrtc_offer', { from: userId, offer });
+    });
+
+    socket.on('webrtc_answer', ({ groupId, toUserId, answer }) => {
+      const toId = toUserId != null ? String(toUserId) : '';
+      if (toId) io.to(toId).emit('webrtc_answer', { from: userId, answer });
+    });
+
+    socket.on('webrtc_ice_candidate', ({ groupId, toUserId, candidate }) => {
+      const toId = toUserId != null ? String(toUserId) : '';
+      if (toId) io.to(toId).emit('webrtc_ice_candidate', { from: userId, candidate });
+    });
+
+    socket.on('leave_group_call', ({ groupId }) => {
+      socket.leave(`group-call:${groupId}`);
+      socket.to(`group-call:${groupId}`).emit('group_call_participant_left', { groupId, userId });
+    });
+
+    socket.on('end_group_call', ({ groupId }) => {
+      io.to(`group-call:${groupId}`).emit('group_call_ended', { groupId });
+      socket.leave(`group-call:${groupId}`);
+    });
 
     socket.on('send_message', async (data) => {
       try {
@@ -181,9 +317,11 @@ const initSocket = (server) => {
     // ── WebRTC Call Signaling ──
 
     socket.on('call_user', ({ to, offer, type }) => {
-      const receiverSocketId = onlineUsers.get(to);
+      const toId = to != null ? String(to) : '';
+      if (!toId) return;
+      const receiverSocketId = onlineUsers.get(toId);
       if (receiverSocketId) {
-        io.to(to).emit('incoming_call', {
+        io.to(toId).emit('incoming_call', {
           from: {
             id: userId,
             name: socket.user.name,
@@ -193,24 +331,28 @@ const initSocket = (server) => {
           type,
         });
       } else {
-        socket.emit('call_unavailable', { userId: to });
+        socket.emit('call_unavailable', { userId: toId });
       }
     });
 
     socket.on('call_accepted', ({ to, answer }) => {
-      io.to(to).emit('call_accepted', { answer });
+      const toId = to != null ? String(to) : '';
+      if (toId) io.to(toId).emit('call_accepted', { answer });
     });
 
     socket.on('call_rejected', ({ to }) => {
-      io.to(to).emit('call_rejected', { userId });
+      const toId = to != null ? String(to) : '';
+      if (toId) io.to(toId).emit('call_rejected', { userId });
     });
 
     socket.on('ice_candidate', ({ to, candidate }) => {
-      io.to(to).emit('ice_candidate', { candidate, from: userId });
+      const toId = to != null ? String(to) : '';
+      if (toId) io.to(toId).emit('ice_candidate', { candidate, from: userId });
     });
 
     socket.on('call_ended', ({ to }) => {
-      io.to(to).emit('call_ended', { userId });
+      const toId = to != null ? String(to) : '';
+      if (toId) io.to(toId).emit('call_ended', { userId });
     });
 
     socket.on('disconnect', async () => {
