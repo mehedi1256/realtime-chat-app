@@ -50,6 +50,14 @@ const initSocket = (server) => {
 
     socket.join(userId);
 
+    // Join all group rooms so user receives updates without having group open
+    try {
+      const groups = await Group.find({ groupMembers: userId }).select('_id').lean();
+      groups.forEach((g) => socket.join(`group:${g._id}`));
+    } catch (err) {
+      console.error('join groups on connect error:', err);
+    }
+
     // ── Group chat ──
 
     socket.on('join_group', async (groupId) => {
@@ -75,6 +83,22 @@ const initSocket = (server) => {
         if (!group) return socket.emit('error', { message: 'Group not found' });
         const isMember = group.groupMembers.some((m) => m.toString() === userId);
         if (!isMember) return socket.emit('error', { message: 'Not a member' });
+
+        const isAdmin = group.groupAdmin.toString() === userId;
+        const settings = group.settings || {};
+        const isFileMessage = !!(fileName || fileUrl);
+
+        if (isFileMessage) {
+          const whoCan = settings.whoCanSendFiles || 'all';
+          if (whoCan === 'admin_only' && !isAdmin) {
+            return socket.emit('error', { message: 'Only admin can send files' });
+          }
+        } else {
+          const whoCan = settings.whoCanSendMessages || 'all';
+          if (whoCan === 'admin_only' && !isAdmin) {
+            return socket.emit('error', { message: 'Only admin can send messages' });
+          }
+        }
 
         const msg = await GroupMessage.create({
           groupId,
@@ -104,13 +128,45 @@ const initSocket = (server) => {
       socket.to(`group:${groupId}`).emit('group_stop_typing', { userId, groupId });
     });
 
+    const getGroupMemberIds = (grp) => {
+      const members = grp?.groupMembers || [];
+      return members.map((m) => {
+        if (!m) return null;
+        const id = typeof m === 'object' && m._id ? m._id : m;
+        return id.toString();
+      }).filter(Boolean);
+    };
+
     socket.on('group_members_added', ({ groupId, group, addedIds }) => {
       const populated = group;
-      io.to(`group:${groupId}`).emit('group_updated', populated);
+      const memberIds = getGroupMemberIds(populated);
+      memberIds.forEach((id) => io.to(id).emit('group_updated', populated));
       (addedIds || []).forEach((id) => {
-        const sid = onlineUsers.get(id);
-        if (sid) io.to(sid).emit('added_to_group', { group: populated });
+        io.to(id).emit('added_to_group', { group: populated });
       });
+    });
+
+    socket.on('group_settings_updated', async ({ groupId, group }) => {
+      try {
+        const g = await Group.findById(groupId);
+        if (!g || g.groupAdmin.toString() !== userId) return;
+        const memberIds = getGroupMemberIds(group);
+        memberIds.forEach((id) => io.to(id).emit('group_updated', group));
+      } catch (err) {
+        console.error('group_settings_updated error:', err);
+      }
+    });
+
+    socket.on('group_member_removed', async ({ groupId, group, removedUserId }) => {
+      try {
+        const g = await Group.findById(groupId);
+        if (!g || g.groupAdmin.toString() !== userId) return;
+        const memberIds = getGroupMemberIds(group);
+        memberIds.forEach((id) => io.to(id).emit('group_updated', group));
+        io.to(removedUserId).emit('removed_from_group', { groupId });
+      } catch (err) {
+        console.error('group_member_removed error:', err);
+      }
     });
 
     // ── Group calling ──

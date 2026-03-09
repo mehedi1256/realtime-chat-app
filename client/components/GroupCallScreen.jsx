@@ -17,6 +17,7 @@ export default function GroupCallScreen({
   onToggleMute,
   onToggleCamera,
   isInitiator,
+  canRecord = true,
 }) {
   const groupCallState = useStore((s) => s.groupCallState);
   const [isMuted, setIsMuted] = useState(false);
@@ -203,7 +204,7 @@ export default function GroupCallScreen({
             <HiOutlineMicrophone className="w-6 h-6" />
           </button>
 
-          {isConnected && (
+          {isConnected && canRecord && (
             <motion.button
               whileTap={{ scale: 0.9 }}
               onClick={isRecording ? stopRecording : startRecording}

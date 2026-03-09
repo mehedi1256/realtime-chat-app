@@ -191,9 +191,24 @@ exports.updateGroup = async (req, res) => {
       return res.status(403).json({ error: 'Only admin can update group' });
     }
 
-    const { groupName } = req.body;
+    const { groupName, settings: settingsRaw } = req.body;
     if (groupName?.trim()) group.groupName = groupName.trim();
     if (req.file?.filename) group.groupAvatar = `/uploads/${req.file.filename}`;
+    if (settingsRaw) {
+      let settings;
+      try {
+        settings = typeof settingsRaw === 'string' ? JSON.parse(settingsRaw) : settingsRaw;
+      } catch {
+        settings = null;
+      }
+      if (settings && typeof settings === 'object') {
+        if (!group.settings) group.settings = {};
+        const allowed = ['all', 'admin_only'];
+        if (allowed.includes(settings.whoCanRecordCall)) group.settings.whoCanRecordCall = settings.whoCanRecordCall;
+        if (allowed.includes(settings.whoCanSendMessages)) group.settings.whoCanSendMessages = settings.whoCanSendMessages;
+        if (allowed.includes(settings.whoCanSendFiles)) group.settings.whoCanSendFiles = settings.whoCanSendFiles;
+      }
+    }
     await group.save();
 
     const populated = await Group.findById(group._id)

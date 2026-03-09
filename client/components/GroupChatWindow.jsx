@@ -11,6 +11,7 @@ import {
   HiOutlineUserGroup,
   HiOutlineCog,
   HiOutlineLogout,
+  HiOutlineTrash,
 } from 'react-icons/hi';
 import toast from 'react-hot-toast';
 import Avatar from './Avatar';
@@ -18,6 +19,7 @@ import GroupMessageBubble from './GroupMessageBubble';
 import EmojiPicker from './EmojiPicker';
 import FileUpload from './FileUpload';
 import AddGroupMembersModal from './AddGroupMembersModal';
+import GroupSettingsModal from './GroupSettingsModal';
 import { groupMessageAPI, groupAPI } from '@/services/api';
 import { getSocket } from '@/services/socket';
 import { encryptMessage, encryptFileContent, generateGroupKey } from '@/utils/encryption';
@@ -42,6 +44,7 @@ export default function GroupChatWindow({ onBack, onStartGroupCall }) {
   const [showFileUpload, setShowFileUpload] = useState(false);
   const [showMembers, setShowMembers] = useState(false);
   const [showAddMembers, setShowAddMembers] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
   const [loading, setLoading] = useState(false);
   const messagesEndRef = useRef(null);
   const inputRef = useRef(null);
@@ -50,6 +53,9 @@ export default function GroupChatWindow({ onBack, onStartGroupCall }) {
   const groupId = selectedGroup?._id;
   const groupKey = generateGroupKey(groupId);
   const isAdmin = selectedGroup?.groupAdmin?._id === user?._id || selectedGroup?.groupAdmin === user?._id;
+  const settings = selectedGroup?.settings || {};
+  const canSendMessages = settings.whoCanSendMessages !== 'admin_only' || isAdmin;
+  const canSendFiles = settings.whoCanSendFiles !== 'admin_only' || isAdmin;
   const typingUserIds = groupId ? (groupTyping.get?.(groupId) || new Set()) : new Set();
   const isAnyoneTyping = typingUserIds.size > 0;
 
@@ -144,6 +150,30 @@ export default function GroupChatWindow({ onBack, onStartGroupCall }) {
     setShowAddMembers(false);
   };
 
+  const handleSettingsSaved = (updatedGroup) => {
+    updateGroupInList(updatedGroup);
+    setSelectedGroup(updatedGroup);
+    setShowSettings(false);
+    const socket = getSocket();
+    if (socket && groupId) {
+      socket.emit('group_settings_updated', { groupId, group: updatedGroup });
+    }
+  };
+
+  const handleRemoveMember = async (memberId) => {
+    if (!groupId || !window.confirm('Remove this member from the group?')) return;
+    try {
+      const res = await groupAPI.removeMember(groupId, memberId);
+      updateGroupInList(res.data.group);
+      setSelectedGroup(res.data.group);
+      const socket = getSocket();
+      if (socket) socket.emit('group_member_removed', { groupId, group: res.data.group, removedUserId: memberId });
+      toast.success('Member removed');
+    } catch {
+      toast.error('Failed to remove member');
+    }
+  };
+
   if (!selectedGroup) {
     return (
       <div className="flex-1 flex items-center justify-center bg-chat-bg dark:bg-chat-bg-dark chat-pattern">
@@ -218,27 +248,51 @@ export default function GroupChatWindow({ onBack, onStartGroupCall }) {
                     <p className="text-xs font-medium text-gray-500 dark:text-gray-400">Members</p>
                   </div>
                   <div className="max-h-48 overflow-y-auto">
-                    {selectedGroup.groupMembers?.map((m) => (
-                      <div
-                        key={m._id}
-                        className="flex items-center gap-2 px-4 py-2 hover:bg-gray-50 dark:hover:bg-gray-700/50"
-                      >
-                        <Avatar user={m} size="sm" showOnline />
-                        <span className="text-sm truncate">{m.name}</span>
-                        {selectedGroup.groupAdmin?._id === m._id && (
-                          <span className="text-[10px] text-primary-500">Admin</span>
-                        )}
-                      </div>
-                    ))}
+                    {selectedGroup.groupMembers?.map((m) => {
+                      const isMemberAdmin = selectedGroup.groupAdmin?._id === m._id || selectedGroup.groupAdmin === m._id;
+                      return (
+                        <div
+                          key={m._id}
+                          className="flex items-center justify-between gap-2 px-4 py-2 hover:bg-gray-50 dark:hover:bg-gray-700/50"
+                        >
+                          <div className="flex items-center gap-2 min-w-0">
+                            <Avatar user={m} size="sm" showOnline />
+                            <span className="text-sm truncate">{m.name}</span>
+                            {isMemberAdmin && (
+                              <span className="text-[10px] text-primary-500 flex-shrink-0">Admin</span>
+                            )}
+                          </div>
+                          {isAdmin && !isMemberAdmin && (
+                            <button
+                              type="button"
+                              onClick={() => handleRemoveMember(m._id)}
+                              className="p-1 rounded hover:bg-red-100 dark:hover:bg-red-900/30 text-red-500"
+                              title="Remove member"
+                            >
+                              <HiOutlineTrash className="w-4 h-4" />
+                            </button>
+                          )}
+                        </div>
+                      );
+                    })}
                   </div>
                   {isAdmin && (
-                    <button
-                      type="button"
-                      onClick={() => { setShowMembers(false); setShowAddMembers(true); }}
-                      className="w-full px-4 py-2 text-left text-sm text-primary-600 dark:text-primary-400 hover:bg-gray-50 dark:hover:bg-gray-700/50"
-                    >
-                      Add members
-                    </button>
+                    <>
+                      <button
+                        type="button"
+                        onClick={() => { setShowMembers(false); setShowSettings(true); }}
+                        className="w-full px-4 py-2 text-left text-sm text-primary-600 dark:text-primary-400 hover:bg-gray-50 dark:hover:bg-gray-700/50"
+                      >
+                        Group settings
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => { setShowMembers(false); setShowAddMembers(true); }}
+                        className="w-full px-4 py-2 text-left text-sm text-primary-600 dark:text-primary-400 hover:bg-gray-50 dark:hover:bg-gray-700/50"
+                      >
+                        Add members
+                      </button>
+                    </>
                   )}
                   <button
                     type="button"
@@ -268,46 +322,58 @@ export default function GroupChatWindow({ onBack, onStartGroupCall }) {
         <div ref={messagesEndRef} />
       </div>
 
-      <form
-        onSubmit={handleSend}
-        className="flex items-center gap-2 px-4 py-3 bg-chat-sidebar dark:bg-chat-header-dark border-t border-gray-200 dark:border-gray-700"
-      >
-        <EmojiPicker
-          onSelect={(emoji) => setText((prev) => prev + emoji)}
-        />
-        <button
-          type="button"
-          onClick={() => setShowFileUpload(true)}
-          className="p-2 text-gray-500 hover:text-gray-700 dark:hover:text-gray-200 transition-colors"
+      {canSendMessages ? (
+        <form
+          onSubmit={handleSend}
+          className="flex items-center gap-2 px-4 py-3 bg-chat-sidebar dark:bg-chat-header-dark border-t border-gray-200 dark:border-gray-700"
         >
-          <HiOutlinePaperClip className="w-6 h-6" />
-        </button>
-        <input
-          ref={inputRef}
-          type="text"
-          value={text}
-          onChange={(e) => {
-            setText(e.target.value);
-            handleTyping();
-          }}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter' && !e.shiftKey) {
-              e.preventDefault();
-              handleSend();
-            }
-          }}
-          placeholder="Type a message..."
-          className="flex-1 px-4 py-2.5 bg-white dark:bg-chat-input-dark rounded-xl text-sm text-gray-900 dark:text-white placeholder-gray-500 outline-none border border-gray-200 dark:border-gray-600 focus:border-primary-500 transition-colors"
-        />
-        <motion.button
-          whileTap={{ scale: 0.9 }}
-          type="submit"
-          disabled={!text.trim()}
-          className="p-2.5 bg-primary-500 hover:bg-primary-600 text-white rounded-xl disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-        >
-          <HiOutlinePaperAirplane className="w-5 h-5 rotate-90" />
-        </motion.button>
-      </form>
+          <EmojiPicker
+            onSelect={(emoji) => setText((prev) => prev + emoji)}
+          />
+          {canSendFiles ? (
+            <button
+              type="button"
+              onClick={() => setShowFileUpload(true)}
+              className="p-2 text-gray-500 hover:text-gray-700 dark:hover:text-gray-200 transition-colors"
+            >
+              <HiOutlinePaperClip className="w-6 h-6" />
+            </button>
+          ) : (
+            <div className="p-2 text-gray-400 cursor-not-allowed" title="Only admin can send files">
+              <HiOutlinePaperClip className="w-6 h-6" />
+            </div>
+          )}
+          <input
+            ref={inputRef}
+            type="text"
+            value={text}
+            onChange={(e) => {
+              setText(e.target.value);
+              handleTyping();
+            }}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                handleSend();
+              }
+            }}
+            placeholder="Type a message..."
+            className="flex-1 px-4 py-2.5 bg-white dark:bg-chat-input-dark rounded-xl text-sm text-gray-900 dark:text-white placeholder-gray-500 outline-none border border-gray-200 dark:border-gray-600 focus:border-primary-500 transition-colors"
+          />
+          <motion.button
+            whileTap={{ scale: 0.9 }}
+            type="submit"
+            disabled={!text.trim()}
+            className="p-2.5 bg-primary-500 hover:bg-primary-600 text-white rounded-xl disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+          >
+            <HiOutlinePaperAirplane className="w-5 h-5 rotate-90" />
+          </motion.button>
+        </form>
+      ) : (
+        <div className="px-4 py-3 bg-chat-sidebar dark:bg-chat-header-dark border-t border-gray-200 dark:border-gray-700 text-center text-sm text-gray-500 dark:text-gray-400">
+          Only admin can send messages in this group
+        </div>
+      )}
 
       {showFileUpload && (
         <FileUpload
@@ -322,6 +388,14 @@ export default function GroupChatWindow({ onBack, onStartGroupCall }) {
           group={selectedGroup}
           onClose={() => setShowAddMembers(false)}
           onAdded={handleAddMembersDone}
+        />
+      )}
+
+      {showSettings && (
+        <GroupSettingsModal
+          group={selectedGroup}
+          onClose={() => setShowSettings(false)}
+          onSaved={handleSettingsSaved}
         />
       )}
     </div>

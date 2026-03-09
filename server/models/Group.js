@@ -23,6 +23,18 @@ const groupSchema = new mongoose.Schema(
       type: String,
       default: '',
     },
+    settings: {
+      type: {
+        whoCanRecordCall: { type: String, enum: ['all', 'admin_only'], default: 'all' },
+        whoCanSendMessages: { type: String, enum: ['all', 'admin_only'], default: 'all' },
+        whoCanSendFiles: { type: String, enum: ['all', 'admin_only'], default: 'all' },
+      },
+      default: () => ({
+        whoCanRecordCall: 'all',
+        whoCanSendMessages: 'all',
+        whoCanSendFiles: 'all',
+      }),
+    },
   },
   { timestamps: true }
 );

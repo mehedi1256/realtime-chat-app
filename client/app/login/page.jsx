@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
 import toast from 'react-hot-toast';
@@ -12,6 +12,7 @@ import useStore from '@/store/useStore';
 
 export default function LoginPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const hasHydrated = useStore((s) => s.hasHydrated);
   const token = useStore((s) => s.token);
   const login = useStore((s) => s.login);
@@ -19,8 +20,11 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    if (hasHydrated && token) router.replace('/chat');
-  }, [hasHydrated, token, router]);
+    if (hasHydrated && token) {
+      const redirect = searchParams.get('redirect');
+      router.replace(redirect && redirect.startsWith('/') ? redirect : '/chat');
+    }
+  }, [hasHydrated, token, router, searchParams]);
 
   const {
     register,
@@ -34,7 +38,8 @@ export default function LoginPage() {
       const res = await authAPI.login(data);
       login(res.data.user, res.data.token);
       toast.success('Welcome back!');
-      router.push('/chat');
+      const redirect = searchParams.get('redirect');
+      router.push(redirect && redirect.startsWith('/') ? redirect : '/chat');
     } catch (err) {
       toast.error(err.response?.data?.error || 'Login failed');
     } finally {

@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
 import { HiOutlineArrowLeft } from 'react-icons/hi';
@@ -11,15 +11,16 @@ import VideoRecorder from '@/components/VideoRecorder';
 
 export default function RecordingsPage() {
   const router = useRouter();
+  const pathname = usePathname();
   const hasHydrated = useStore((s) => s.hasHydrated);
   const token = useStore((s) => s.token);
 
   useEffect(() => {
     if (!hasHydrated) return;
     if (!token) {
-      router.replace('/login');
+      router.replace(`/login?redirect=${encodeURIComponent(pathname)}`);
     }
-  }, [hasHydrated, token, router]);
+  }, [hasHydrated, token, router, pathname]);
 
   if (!hasHydrated || !token) return null;
 

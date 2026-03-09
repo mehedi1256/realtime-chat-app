@@ -83,6 +83,9 @@ export const groupAPI = {
     const formData = new FormData();
     if (data.groupName) formData.append('groupName', data.groupName);
     if (data.groupAvatar) formData.append('groupAvatar', data.groupAvatar);
+    if (data.settings && typeof data.settings === 'object') {
+      formData.append('settings', JSON.stringify(data.settings));
+    }
     return api.put(`/groups/${groupId}`, formData, {
       headers: { 'Content-Type': 'multipart/form-data' },
     });

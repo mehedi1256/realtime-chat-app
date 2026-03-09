@@ -1,7 +1,8 @@
 'use client';
 
 import { useEffect, useState, useCallback } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams, usePathname } from 'next/navigation';
+import toast from 'react-hot-toast';
 import useStore from '@/store/useStore';
 import { connectSocket, disconnectSocket, getSocket } from '@/services/socket';
 import Sidebar from '@/components/Sidebar';
@@ -16,6 +17,8 @@ import useGroupCall from '@/utils/useGroupCall';
 
 export default function ChatPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const pathname = usePathname();
   const hasHydrated = useStore((s) => s.hasHydrated);
   const token = useStore((s) => s.token);
   const user = useStore((s) => s.user);
@@ -63,10 +66,14 @@ export default function ChatPage() {
     handleRemoteEnd,
   } = useWebRTC();
 
+  const users = useStore((s) => s.users);
+  const groups = useStore((s) => s.groups);
+
   useEffect(() => {
     if (!hasHydrated) return;
     if (!token) {
-      router.replace('/login');
+      const redirect = pathname + (searchParams.toString() ? `?${searchParams.toString()}` : '');
+      router.replace(redirect ? `/login?redirect=${encodeURIComponent(redirect)}` : '/login');
       return;
     }
 
@@ -147,10 +154,25 @@ export default function ChatPage() {
     });
     socket.on('group_typing', ({ userId: uid, groupId: gid }) => setGroupTyping(gid, uid, true));
     socket.on('group_stop_typing', ({ userId: uid, groupId: gid }) => setGroupTyping(gid, uid, false));
-    socket.on('group_updated', (group) => updateGroupInList(group));
+    socket.on('group_updated', (group) => {
+      updateGroupInList(group);
+      if (useStore.getState().selectedGroup?._id === group._id) {
+        setSelectedGroup(group);
+      }
+    });
     socket.on('added_to_group', ({ group: g }) => {
       const groups = useStore.getState().groups || [];
       if (!groups.some((x) => x._id === g._id)) setGroups([g, ...groups]);
+      socket.emit('join_group', g._id);
+    });
+    socket.on('removed_from_group', ({ groupId: gid }) => {
+      const groups = useStore.getState().groups || [];
+      setGroups(groups.filter((g) => g._id !== gid));
+      if (useStore.getState().selectedGroup?._id === gid) {
+        setSelectedGroup(null);
+        router.replace('/chat');
+      }
+      toast.error('You were removed from the group');
     });
 
     if ('Notification' in window && Notification.permission === 'default') {
@@ -160,7 +182,35 @@ export default function ChatPage() {
     return () => {
       disconnectSocket();
     };
-  }, [hasHydrated, token, user?._id]);
+  }, [hasHydrated, token, user?._id, pathname, searchParams, router]);
+
+  // Restore selection from URL on load/refresh
+  useEffect(() => {
+    if (!hasHydrated || !token) return;
+    const userId = searchParams.get('userId');
+    const groupId = searchParams.get('groupId');
+    if (!userId && !groupId) return;
+    const state = useStore.getState();
+    if (state.selectedUser || state.selectedGroup) return; // already have selection
+    if (userId) {
+      if (!users?.length) return;
+      const u = users.find((x) => x._id === userId);
+      if (u) {
+        setSelectedUser(u);
+        setSelectedGroup(null);
+        setMobileShowChat(true);
+      }
+    } else if (groupId && groups?.length) {
+      const g = groups.find((x) => x._id === groupId);
+      if (g) {
+        setSelectedGroup(g);
+        setSelectedUser(null);
+        setMobileShowChat(true);
+        const socket = getSocket();
+        if (socket) socket.emit('join_group', g._id);
+      }
+    }
+  }, [hasHydrated, token, users, groups, searchParams, setSelectedUser, setSelectedGroup]);
 
   // Group call listeners
   useEffect(() => {
@@ -188,6 +238,7 @@ export default function ChatPage() {
 
   const handleSelectUser = useCallback(
     (u) => {
+      if (selectedUser?._id === u._id) return; // same user, avoid clearing messages
       setSelectedGroup(null);
       setSelectedUser(u);
       setMobileShowChat(true);
@@ -197,19 +248,35 @@ export default function ChatPage() {
         socket.emit('message_seen', { senderId: u._id, receiverId: user?._id });
       }
     },
-    [setSelectedUser, setSelectedGroup, resetUnread, user]
+    [setSelectedUser, setSelectedGroup, resetUnread, user, selectedUser]
   );
 
   const handleSelectGroup = useCallback(
     (g) => {
+      if (selectedGroup?._id === g._id) return; // same group, avoid clearing messages
       setSelectedUser(null);
       setSelectedGroup(g);
       setMobileShowChat(true);
       const socket = getSocket();
       if (socket) socket.emit('join_group', g._id);
     },
-    [setSelectedGroup, setSelectedUser]
+    [setSelectedGroup, setSelectedUser, selectedGroup]
   );
+
+  // Sync URL with selection (runs after state updates, avoids race with restore)
+  useEffect(() => {
+    if (!hasHydrated || !token) return;
+    const currentUrl = pathname + (searchParams.toString() ? `?${searchParams.toString()}` : '');
+    if (selectedUser) {
+      const expected = `/chat?userId=${selectedUser._id}`;
+      if (currentUrl !== expected) router.replace(expected);
+    } else if (selectedGroup) {
+      const expected = `/chat?groupId=${selectedGroup._id}`;
+      if (currentUrl !== expected) router.replace(expected);
+    } else if (searchParams.get('userId') || searchParams.get('groupId')) {
+      router.replace('/chat');
+    }
+  }, [hasHydrated, token, selectedUser, selectedGroup, pathname, searchParams, router]);
 
   const handleBack = useCallback(() => {
     setMobileShowChat(false);
@@ -306,9 +373,17 @@ export default function ChatPage() {
 
       <div className={`flex-1 ${mobileShowChat ? 'flex' : 'hidden md:flex'}`}>
         {selectedGroup ? (
-          <GroupChatWindow onBack={handleBack} onStartGroupCall={handleStartGroupCall} />
+          <GroupChatWindow
+            key={selectedGroup._id}
+            onBack={handleBack}
+            onStartGroupCall={handleStartGroupCall}
+          />
         ) : (
-          <ChatWindow onBack={handleBack} onStartCall={handleStartCall} />
+          <ChatWindow
+            key={selectedUser?._id ?? 'empty'}
+            onBack={handleBack}
+            onStartCall={handleStartCall}
+          />
         )}
       </div>
 
@@ -345,6 +420,11 @@ export default function ChatPage() {
           onToggleMute={groupToggleMute}
           onToggleCamera={groupToggleCamera}
           isInitiator={groupCallState.isInitiator}
+          canRecord={
+            (selectedGroup?.settings?.whoCanRecordCall !== 'admin_only') ||
+            selectedGroup?.groupAdmin?._id === user?._id ||
+            selectedGroup?.groupAdmin === user?._id
+          }
         />
       )}
 
