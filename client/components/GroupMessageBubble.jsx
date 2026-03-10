@@ -1,8 +1,9 @@
 'use client';
 
+import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import FilePreview from './FilePreview';
-import { decryptMessage, generateGroupKey } from '@/utils/encryption';
+import { decryptMessage, decryptFileContent, generateGroupKey } from '@/utils/encryption';
 import { formatMessageTime } from '@/utils/formatTime';
 import useStore from '@/store/useStore';
 import Avatar from './Avatar';
@@ -14,12 +15,43 @@ export default function GroupMessageBubble({ message, groupId }) {
   const isSender = (message.sender?._id || message.sender) === currentUser?._id;
   const senderName = message.sender?.name ?? 'Unknown';
   const senderPicture = message.sender?.profilePicture;
+  const isDeleted = message.isDeleted;
+  const isE2EFile = !isDeleted && message.fileName && message.encryptedMessage && !message.fileUrl;
 
-  const decryptedText = message.isDeleted
+  const [localFileUrl, setLocalFileUrl] = useState(null);
+
+  useEffect(() => {
+    if (!isE2EFile || !message.encryptedMessage) return;
+
+    const base64 = decryptFileContent(message.encryptedMessage, groupKey);
+    if (!base64) return;
+
+    let url = null;
+    try {
+      const binary = atob(base64);
+      const bytes = new Uint8Array(binary.length);
+      for (let i = 0; i < binary.length; i += 1) {
+        bytes[i] = binary.charCodeAt(i);
+      }
+      const blob = new Blob([bytes], { type: message.fileType || 'application/octet-stream' });
+      url = URL.createObjectURL(blob);
+      setLocalFileUrl(url);
+    } catch {
+      return () => {};
+    }
+
+    return () => {
+      if (url) URL.revokeObjectURL(url);
+    };
+  }, [isE2EFile, message.encryptedMessage, message.fileType, message._id, groupKey]);
+
+  const decryptedText = isDeleted
     ? ''
-    : decryptMessage(message.encryptedMessage, groupKey);
+    : isE2EFile
+      ? ''
+      : decryptMessage(message.encryptedMessage, groupKey);
 
-  if (message.isDeleted) {
+  if (isDeleted) {
     return (
       <div className={`flex ${isSender ? 'justify-end' : 'justify-start'} px-2 sm:px-4 py-0.5`}>
         <div className="px-4 py-2 rounded-xl bg-gray-100 dark:bg-gray-800 italic text-gray-400 text-sm">
@@ -54,11 +86,12 @@ export default function GroupMessageBubble({ message, groupId }) {
                 : 'bg-chat-receiver dark:bg-chat-receiver-dark text-gray-900 dark:text-gray-100 rounded-bl-sm'
             }`}
           >
-            {(message.fileUrl || (message.fileName && message.encryptedMessage)) && (
+            {(message.fileUrl || (isE2EFile && localFileUrl)) && (
               <FilePreview
                 fileUrl={message.fileUrl}
                 fileName={message.fileName}
                 fileType={message.fileType}
+                localBlobUrl={localFileUrl}
               />
             )}
             {decryptedText && (
@@ -75,3 +108,4 @@ export default function GroupMessageBubble({ message, groupId }) {
     </motion.div>
   );
 }
+
